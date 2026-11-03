@@ -115,6 +115,7 @@ nav.tabs button[aria-selected="true"]{color:var(--accent)}
 .bar.done i{background:var(--good)}
 .small{font-size:13px;color:var(--muted)}
 .value{font-weight:700}
+.filter-input{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:11px 14px;margin-bottom:10px}
 .empty{text-align:center;padding:48px 16px;color:var(--muted)}
 .empty h2{color:var(--fg);font-size:24px;margin-bottom:8px}
 
@@ -234,6 +235,13 @@ a{color:var(--accent)}
         </select>
       </div>
       <div class="sets" id="setList"></div>
+
+      <div class="section-title" style="margin-top:28px">
+        <h2>Alle Sets</h2>
+        <span class="small" id="allSetsCount"></span>
+      </div>
+      <input id="allSetFilter" class="filter-input" type="search" placeholder="Set suchen, z. B. 151 oder Obsidian" autocomplete="off" aria-label="Set suchen">
+      <div class="sets" id="allSetList"><div class="spinner"></div></div>
     </div>
     <div id="setDetail" hidden></div>
   </section>
@@ -649,7 +657,8 @@ function addToCollection(card, variant){
   const price = marketPrice(card, variant);
   const e = collection.find(x => x.key === key);
   if (e) { e.qty++; if (price != null) { e.price = price; e.priceAt = Date.now(); } }
-  else collection.push({ key, cardId: card.id, name: card.name, localId: String(card.localId), setId: card.set?.id, setName: card.set?.name,
+  const setId = card.set?.id || card.id.slice(0, card.id.lastIndexOf("-"));
+  if (!e) collection.push({ key, cardId: card.id, name: card.name, localId: String(card.localId), setId, setName: card.set?.name || setId.toUpperCase(),
     setTotal: card.set?.cardCount?.official ?? null, setLogo: card.set?.logo ?? null, image: card.image ?? null, variant, qty: 1,
     price, priceAt: price != null ? Date.now() : null, addedAt: Date.now() });
   saveCollection();
@@ -687,11 +696,44 @@ function renderCollection(){
         ${g.setTotal ? `<div class="bar ${pct >= 100 ? "done" : ""}"><i style="width:${pct}%"></i></div><div class="small num">${g.unique} von ${g.setTotal}</div>` : `<div class="small num">${g.unique} Karten</div>`}
       </div>
       <div class="value num">${fmt(g.value)}</div></button>`;
-  }).join("") : `<div class="empty"><h2>Noch keine Karten</h2>Scanne deine erste Karte oder such sie über den Namen.</div>`;
+  }).join("") : `<div class="empty"><h2>Noch keine Karten</h2>Scanne deine erste Karte oder öffne unten ein Set.</div>`;
+  renderAllSets();
   if (openSetId) renderSetDetail();
 }
 $("#sortSel").addEventListener("change", renderCollection);
 $("#setList").addEventListener("click", e => { const b = e.target.closest("[data-set]"); if (b) showSet(b.dataset.set); });
+$("#allSetList").addEventListener("click", e => { const b = e.target.closest("[data-set]"); if (b) showSet(b.dataset.set); });
+
+/* Alle Sets aus der Datenbank, neueste zuerst, mit deinem Fortschritt */
+let allSets = null, allSetsError = null;
+async function loadAllSets(){
+  try { allSets = (await getSets()).slice().reverse(); allSetsError = null; }
+  catch (e) { allSetsError = e.message; }
+  renderAllSets();
+}
+function renderAllSets(){
+  const box = $("#allSetList");
+  if (allSetsError) { box.innerHTML = `<div class="empty">${esc(allSetsError)} <p><button class="btn" id="retrySets">Nochmal versuchen</button></p></div>`; return; }
+  if (!allSets) { box.innerHTML = `<div class="spinner"></div>`; return; }
+  const ownedBySet = {};
+  for (const e of collection) (ownedBySet[e.setId] ||= new Set()).add(e.cardId);
+  const q = $("#allSetFilter").value.trim().toLowerCase();
+  const list = q ? allSets.filter(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q)) : allSets;
+  $("#allSetsCount").textContent = `${allSets.length} Sets`;
+  box.innerHTML = list.length ? list.map(s => {
+    const total = s.cardCount?.official || s.cardCount?.total || 0;
+    const have = ownedBySet[s.id]?.size || 0;
+    const pct = total ? Math.min(100, have / total * 100) : 0;
+    return `<button class="set-row" data-set="${esc(s.id)}">
+      ${s.logo ? `<img src="${esc(s.logo)}.webp" alt="" loading="lazy">` : `<span></span>`}
+      <div><div class="name">${esc(s.name)}</div>
+        <div class="bar ${pct >= 100 ? "done" : ""}"><i style="width:${pct}%"></i></div>
+        <div class="small num">${have} von ${total || "?"}</div></div>
+      <div class="small num">${esc(s.id.toUpperCase())}</div></button>`;
+  }).join("") : `<div class="empty">Kein Set gefunden.</div>`;
+}
+$("#allSetFilter").addEventListener("input", renderAllSets);
+$("#allSetList").addEventListener("click", e => { if (e.target.closest("#retrySets")) { allSetsError = null; renderAllSets(); loadAllSets(); } });
 
 let openSetId = null, setFilter = "all", setData = null;
 async function showSet(id){
@@ -777,6 +819,7 @@ $("#importInput").addEventListener("change", async e => {
 function renderLang(){ $$("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang))); }
 $$("[data-lang]").forEach(b => b.addEventListener("click", () => {
   lang = b.dataset.lang; store.set("ks.lang", lang); renderLang();
+  allSets = null;
   if ($("#searchInput").value.trim()) runSearch();
 }));
 async function runSearch(){
@@ -794,7 +837,11 @@ $("#searchForm").addEventListener("submit", e => { e.preventDefault(); $("#searc
 $("#searchResults").addEventListener("click", e => { const c = e.target.closest("[data-card]"); if (c) openCard(c.dataset.card); });
 
 /* ---------- Tabs ---------- */
+function closeSetDetail(){ openSetId = null; $("#setDetail").hidden = true; $("#collectionList").hidden = false; }
 function showTab(name){
+  // Tab "Sammlung" führt immer zurück zur Übersicht aller Sets.
+  if (name === "collection") closeSetDetail();
+  if (name === "collection" && !allSets) loadAllSets();
   $$("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
   ["scan","collection","search"].forEach(t => $("#view-" + t).hidden = t !== name);
   if (name === "scan") { if (store.get("ks.camOn", false)) startCamera(); }
