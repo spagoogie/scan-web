@@ -176,6 +176,25 @@ a{color:var(--accent)}
 .spinner{width:22px;height:22px;border:3px solid var(--surface-2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:24px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+/* Sprachen */
+.badge{display:inline-block;font:700 10px/1 var(--mono);letter-spacing:.04em;padding:3px 5px;border-radius:5px;background:var(--surface-2);color:var(--muted);vertical-align:middle}
+.cam-top .langs{display:flex;gap:4px;background:rgba(20,21,31,.7);padding:3px;border-radius:999px}
+.cam-top .langs button{border:0;background:none;color:#c9ccd8;font:700 12px/1 var(--mono);padding:7px 10px;border-radius:999px}
+.cam-top .langs button[aria-pressed="true"]{background:#fff;color:#14151f}
+.langbar{display:flex;gap:6px;overflow-x:auto;margin:-4px 0 14px;padding-bottom:2px}
+.langbar .chip{white-space:nowrap;flex:none}
+.langbar .chip small{font-family:var(--mono);opacity:.7;margin-left:4px}
+/* Set-Ansicht */
+.set-tools{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.set-tools .filters{margin:0}
+.set-tools select{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 8px;font-size:14px}
+.missing-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;display:grid;gap:8px}
+.missing-panel .mrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.missing-panel .mval{font:800 22px/1 var(--display);font-stretch:85%;color:var(--accent)}
+.missing-panel .mval.sub{font-size:17px;color:var(--fg)}
+.loadbar{height:4px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+.loadbar i{display:block;height:100%;background:var(--gold)}
+.tile .price{font:700 12px/1.2 var(--mono);color:var(--fg)}
 </style>
 </head>
 <body>
@@ -187,10 +206,15 @@ a{color:var(--accent)}
       <div class="guide" id="guide" hidden><div class="numzone"><span>025/165</span></div></div>
       <div class="cam-msg" id="camMsg">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><rect x="8.5" y="7" width="7" height="10" rx="1.2"/></svg>
-        <p id="camText">Halte eine Karte in den Rahmen. Die App liest die Nummer unten auf der Karte, z.&nbsp;B. <span class="num">025/165</span>.</p>
+        <p id="camText">Wähle oben die Sprache der Karte und halte sie in den Rahmen. Die App liest die Nummer unten auf der Karte, z.&nbsp;B. <span class="num">025/165</span>.</p>
         <button class="btn primary" id="startCam">Kamera starten</button>
       </div>
-      <div class="cam-top"><h1>Karte scannen</h1></div>
+      <div class="cam-top">
+        <h1>Karte scannen</h1>
+        <div class="langs" role="group" aria-label="Sprache der Karte">
+          <button data-scanlang="de">DE</button><button data-scanlang="en">EN</button><button data-scanlang="ja">JA</button>
+        </div>
+      </div>
       <div class="status" id="status" hidden><span class="dot"></span><span id="statusText"></span></div>
     </div>
     <div class="scan-panel">
@@ -214,8 +238,9 @@ a{color:var(--accent)}
   <section class="view" id="view-collection" aria-label="Sammlung" hidden>
     <div id="collectionList">
       <div class="view-head"><h1>Sammlung</h1></div>
+      <div class="langbar" id="langBar" role="group" aria-label="Sprache der Sammlung"></div>
       <div class="summary">
-        <div class="eyebrow">Gesamtwert · Cardmarket-Trend</div>
+        <div class="eyebrow" id="totalLabel">Gesamtwert · Cardmarket-Trend</div>
         <div class="total num" id="totalValue">0,00 €</div>
         <div class="meta"><span id="totalCards">0 Karten</span><span id="totalSets">0 Sets</span></div>
         <div class="row-btns">
@@ -226,7 +251,7 @@ a{color:var(--accent)}
         </div>
       </div>
       <div class="section-title">
-        <h2>Sets</h2>
+        <h2>Meine Sets</h2>
         <select id="sortSel" aria-label="Sortierung">
           <option value="recent">Zuletzt</option>
           <option value="value">Wert</option>
@@ -237,7 +262,7 @@ a{color:var(--accent)}
       <div class="sets" id="setList"></div>
 
       <div class="section-title" style="margin-top:28px">
-        <h2>Alle Sets</h2>
+        <h2 id="allSetsTitle">Alle Sets</h2>
         <span class="small" id="allSetsCount"></span>
       </div>
       <input id="allSetFilter" class="filter-input" type="search" placeholder="Set suchen, z. B. 151 oder Obsidian" autocomplete="off" aria-label="Set suchen">
@@ -253,13 +278,14 @@ a{color:var(--accent)}
       <div class="lang" role="group" aria-label="Kartensprache">
         <button class="chip" data-lang="de">DE</button>
         <button class="chip" data-lang="en">EN</button>
+        <button class="chip" data-lang="ja">JA</button>
       </div>
     </div>
     <form class="searchbar" id="searchForm">
       <input id="searchInput" type="search" placeholder="Kartenname, z. B. Glurak" autocomplete="off" aria-label="Kartenname">
       <button class="btn primary" type="submit">Suchen</button>
     </form>
-    <div id="searchResults"><div class="empty"><h2>Karte suchen</h2>Gib einen Pokémon- oder Kartennamen ein.</div></div>
+    <div id="searchResults"><div class="empty"><h2>Karte suchen</h2>Gib einen Pokémon- oder Kartennamen ein. Für japanische Karten den japanischen Namen, z.&nbsp;B. ピカチュウ.</div></div>
   </section>
 </main>
 
@@ -301,18 +327,39 @@ function toast(msg){
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 2200);
 }
 const VARIANTS = { normal:"Normal", holo:"Holo", reverse:"Reverse Holo", firstEdition:"1. Edition" };
+const LANGS = { de:"Deutsch", en:"Englisch", ja:"Japanisch" };
+const LANG_CODES = Object.keys(LANGS);
+const badge = lg => `<span class="badge">${esc(String(lg).toUpperCase())}</span>`;
 const img = (base, q = "low") => base ? `${base}/${q}.webp` : "";
+const setIdOf = cardId => cardId.slice(0, cardId.lastIndexOf("-"));
 
 /* ---------- State ---------- */
-let collection = store.get("ks.collection", []);
-let lang = store.get("ks.lang", "de");
+let scanLang = store.get("ks.scanLang", "de");
+let searchLang = store.get("ks.lang", "de");
+let viewLang = store.get("ks.viewLang", "all");   // "all" = Global
+let collection = migrate(store.get("ks.collection", []));
+function migrate(list){
+  // Ältere Einträge hatten keine Sprache – sie waren deutsch.
+  const map = new Map();
+  for (const x of list || []) {
+    if (!x || !x.cardId) continue;
+    const lang = LANG_CODES.includes(x.lang) ? x.lang : "de";
+    const variant = x.variant || "normal";
+    const key = `${lang}|${x.cardId}|${variant}`;
+    const prev = map.get(key);
+    if (prev) prev.qty += x.qty || 1;
+    else map.set(key, { ...x, lang, variant, key, setId: x.setId || setIdOf(x.cardId), qty: x.qty || 1 });
+  }
+  return [...map.values()];
+}
 function saveCollection(){ store.set("ks.collection", collection); renderCollection(); }
+const inView = e => viewLang === "all" || e.lang === viewLang;
 
 /* ---------- TCGdex API ---------- */
 const API = "https://api.tcgdex.net/v2/";
 const cache = { sets:{}, set:{}, card:{} };
 class NotFound extends Error {}
-async function api(path, lg = lang, query = ""){
+async function api(path, lg, query = ""){
   let res;
   try { res = await fetch(`${API}${lg}/${path}${query}`); }
   catch { throw new Error("Keine Verbindung zur Kartendatenbank. Prüfe dein Internet."); }
@@ -320,31 +367,35 @@ async function api(path, lg = lang, query = ""){
   if (!res.ok) throw new Error(`Die Kartendatenbank antwortet mit Fehler ${res.status}.`);
   return res.json();
 }
-async function getSets(lg = lang){
+function getSets(lg){
   if (!cache.sets[lg]) cache.sets[lg] = api("sets", lg).catch(e => { delete cache.sets[lg]; throw e; });
   return cache.sets[lg];
 }
-async function getSet(id, lg = lang){
+function getSet(id, lg){
   const k = lg + "/" + id;
   if (!cache.set[k]) cache.set[k] = api("sets/" + encodeURIComponent(id), lg).catch(e => { delete cache.set[k]; throw e; });
   return cache.set[k];
 }
-async function getSetAny(id){
-  try { return await getSet(id); } catch (e) { if (lang !== "en") return getSet(id, "en"); throw e; }
+async function getSetAny(id, lg){
+  try { return await getSet(id, lg); }
+  catch (e) { if (lg === "de") return getSet(id, "en"); throw e; }
 }
-async function getCard(id){
-  if (cache.card[lang + id]) return cache.card[lang + id];
+async function getCard(id, lg, fresh = false){
+  const k = lg + "|" + id;
+  if (cache.card[k] && !fresh) return cache.card[k];
   let card;
-  try { card = await api("cards/" + encodeURIComponent(id)); }
-  catch (e) { if (e instanceof NotFound && lang !== "en") card = await api("cards/" + encodeURIComponent(id), "en"); else throw e; }
-  if (!card.pricing?.cardmarket && lang !== "en") {
+  try { card = await api("cards/" + encodeURIComponent(id), lg); }
+  catch (e) { if (e instanceof NotFound && lg === "de") card = await api("cards/" + encodeURIComponent(id), "en"); else throw e; }
+  // Deutsche Karten haben dieselbe Cardmarket-Kennung wie englische: fehlende Preise dort holen.
+  if (!card.pricing?.cardmarket && lg === "de") {
     try { const en = await api("cards/" + encodeURIComponent(id), "en"); if (en.pricing) card.pricing = en.pricing; } catch {}
   }
-  cache.card[lang + id] = card;
+  cache.card[k] = card;
+  putPrice(lg, id, marketPrice(card, availableVariants(card)[0]));
   return card;
 }
-async function searchCards(q){
-  return api("cards", lang, `?name=${encodeURIComponent("like:" + q)}&pagination:page=1&pagination:itemsPerPage=80`);
+async function searchCards(q, lg){
+  return api("cards", lg, `?name=${encodeURIComponent("like:" + q)}&pagination:page=1&pagination:itemsPerPage=80`);
 }
 function availableVariants(card){
   const v = card.variants || {};
@@ -359,7 +410,34 @@ function marketPrice(card, variant){
     : pick(cm.trend, cm.avg30, cm.avg, cm["trend-holo"], cm["avg30-holo"]);
 }
 
-/* ---------- Card number parsing ---------- */
+/* ---------- Preis-Zwischenspeicher (24 h) ---------- */
+const PRICE_TTL = 24 * 3600 * 1000;
+let priceCache = store.get("ks.prices", {});
+for (const k in priceCache) if (Date.now() - priceCache[k].t > PRICE_TTL) delete priceCache[k];
+let priceSaveTimer = null;
+function cachedPrice(lg, id){ const x = priceCache[lg + "|" + id]; return x && Date.now() - x.t < PRICE_TTL ? x : null; }
+function putPrice(lg, id, p){
+  priceCache[lg + "|" + id] = { p: p ?? null, t: Date.now() };
+  clearTimeout(priceSaveTimer); priceSaveTimer = setTimeout(() => store.set("ks.prices", priceCache), 800);
+}
+/** Lädt die Preise aller Karten eines Sets (6 parallel), meldet Fortschritt. */
+async function loadPrices(cards, lg, onProgress){
+  const todo = cards.filter(c => !cachedPrice(lg, c.id));
+  let done = cards.length - todo.length, i = 0;
+  onProgress(done, cards.length);
+  async function worker(){
+    while (i < todo.length) {
+      const c = todo[i++];
+      try { await getCard(c.id, lg); } catch { putPrice(lg, c.id, null); }
+      done++;
+      if (done % 12 === 0 || done === cards.length) onProgress(done, cards.length);
+    }
+  }
+  await Promise.all(Array.from({ length: 6 }, worker));
+  onProgress(cards.length, cards.length);
+}
+
+/* ---------- Kartennummer lesen ---------- */
 const NUM_RE = /(?<![A-Za-z0-9])([A-Z]{0,3}\d{1,3})\s?\/\s?([A-Z]{0,3})(\d{2,3})(?!\d)/g;
 function cleanOCR(t){
   return t.replace(/[Oo](?=\d)|(?<=\d)[Oo]/g, "0").replace(/(?<=[\d\/])[lI|]|[lI|](?=[\d\/])/g, "1").replace(/[\\|]/g, "/");
@@ -382,10 +460,16 @@ function normalize(id){
   return m[1] + (m[2] ? String(parseInt(m[2], 10)) : "") + m[3];
 }
 const same = (a, b) => a && b && normalize(a.number) === normalize(b.number) && a.total === b.total;
+/** Gehört die Karte zum Grundset (Nummer ≤ offizielle Setgröße) oder ist sie eine Secret Rare? */
+function isBaseCard(c, official){
+  if (!official) return true;
+  const s = String(c.localId);
+  return /^\d+$/.test(s) && parseInt(s, 10) <= official;
+}
 
-async function identify(p){
-  let out = await identifyIn(p, lang);
-  if (!out.length && lang !== "en") out = await identifyIn(p, "en").catch(() => []);
+async function identify(p, lg){
+  let out = await identifyIn(p, lg);
+  if (!out.length && lg === "de") out = await identifyIn(p, "en").catch(() => []);
   return out;
 }
 async function identifyIn(p, lg){
@@ -394,7 +478,7 @@ async function identifyIn(p, lg){
   const sets = await getSets(lg);
   let match = sets.filter(s => s.cardCount?.official === p.total);
   if (!match.length) match = sets.filter(s => s.cardCount?.total === p.total);
-  match = match.slice(-10).reverse();
+  match = match.slice(-12).reverse();
   const fulls = await Promise.all(match.map(s => getSet(s.id, lg).catch(() => null)));
   const out = [];
   for (const f of fulls) {
@@ -451,6 +535,12 @@ function setStatus(text, warn = false){
   s.querySelector(".dot").style.display = warn ? "none" : "";
   $("#statusText").textContent = text;
 }
+function renderScanLang(){ $$("[data-scanlang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.scanlang === scanLang))); }
+$$("[data-scanlang]").forEach(b => b.addEventListener("click", () => {
+  scanLang = b.dataset.scanlang; store.set("ks.scanLang", scanLang); renderScanLang();
+  lastParsed = null; lastLookup = null;
+  toast(`Scanne ${LANGS[scanLang].toLowerCase()}e Karten`);
+}));
 async function startCamera(){
   if (stream) return;
   if (!navigator.mediaDevices?.getUserMedia) { camFail("Dieser Browser erlaubt keinen Kamerazugriff. Nutze „Foto“ oder „Nummer“."); return; }
@@ -507,15 +597,16 @@ function handleParsed(p){
 async function lookup(p){
   busy = true;
   lastLookup = p;
-  setStatus(`Suche Karte ${p.display} …`);
+  const lg = scanLang;
+  setStatus(`Suche ${LANGS[lg].toLowerCase()}e Karte ${p.display} …`);
   if (navigator.vibrate) navigator.vibrate(30);
   try {
     if (!p.total) throw new Error(`Nummer ${p.display} erkannt. Solche Karten findest du am besten über „Suchen“ mit dem Namen.`);
-    const cands = await identify(p);
-    if (!cands.length) throw new Error(`Keine Karte mit der Nummer ${p.display} gefunden. Versuch es nochmal.`);
+    const cands = await identify(p, lg);
+    if (!cands.length) throw new Error(`Keine ${LANGS[lg].toLowerCase()}e Karte mit ${p.display} gefunden. Stimmt die Sprache oben?`);
     setStatus(scanning ? "Suche Kartennummer …" : "");
-    if (cands.length === 1) openCard(cands[0].card.id);
-    else openCandidates(cands, p.display);
+    if (cands.length === 1) openCard(cands[0].card.id, lg);
+    else openCandidates(cands, p.display, lg);
   } catch (e) {
     setStatus(e.message, true);
     cooldownUntil = Date.now() + 4000;
@@ -540,7 +631,6 @@ $("#photoInput").addEventListener("change", async e => {
   busy = true; setStatus("Lese Foto …");
   try {
     const bmp = await createImageBitmap(file);
-    // Karte füllt das Foto: zuerst unteren Rand lesen, sonst das ganze Bild.
     let p = parseNumber(await ocr(prepCanvas(bmp, 0, bmp.height * .8, bmp.width, bmp.height * .2)));
     if (!p) p = parseNumber(await ocr(prepCanvas(bmp, 0, 0, bmp.width, bmp.height, 1600)));
     busy = false;
@@ -549,7 +639,7 @@ $("#photoInput").addEventListener("change", async e => {
 });
 
 /* ---------- Sheet ---------- */
-let sheetCardId = null;
+let sheetCard = null;   // { id, lg }
 const sheetOpen = () => !$("#sheet").hidden;
 function openSheet(title, html){
   $("#sheetTitle").textContent = title; $("#sheetBody").innerHTML = html;
@@ -560,54 +650,58 @@ function openSheet(title, html){
 function closeSheet(){
   $("#scrim").classList.remove("open"); $("#sheet").classList.remove("open");
   setTimeout(() => { $("#scrim").hidden = true; $("#sheet").hidden = true; }, 220);
-  sheetCardId = null;
+  sheetCard = null;
   cooldownUntil = Date.now() + 4000; lastParsed = null;
+  if (openSet) renderSetDetail();
 }
 $("#sheetClose").addEventListener("click", closeSheet);
 $("#scrim").addEventListener("click", closeSheet);
 
-function openCandidates(cands, display){
+function openCandidates(cands, display, lg){
   openSheet(`${cands.length} Karten mit ${display}`, `
     <p class="note">Welche ist deine?</p>
-    ${cands.map(c => `<button class="cand" data-card="${esc(c.card.id)}">
+    ${cands.map(c => `<button class="cand" data-card="${esc(c.card.id)}" data-lg="${lg}">
       <img src="${esc(img(c.card.image))}" alt="" loading="lazy">
-      <div><strong>${esc(c.card.name)}</strong><div class="small">${esc(c.setName)} · <span class="num">${esc(c.card.localId)}</span></div></div>
+      <div><strong>${esc(c.card.name)}</strong><div class="small">${esc(c.setName)} · <span class="num">${esc(c.card.localId)}</span> ${badge(lg)}</div></div>
     </button>`).join("")}`);
 }
 
-async function openCard(id){
-  sheetCardId = id;
+let selVariant = "normal", addLang = "de";
+async function openCard(id, lg){
+  sheetCard = { id, lg }; addLang = lg;
   openSheet("Karte", `<div class="spinner"></div>`);
   try {
-    const card = await getCard(id);
-    if (sheetCardId !== id) return;
+    const card = await getCard(id, lg);
+    if (sheetCard?.id !== id) return;
     renderCardSheet(card);
   } catch (e) {
-    if (sheetCardId !== id) return;
-    $("#sheetBody").innerHTML = `<div class="empty"><h2>Karte nicht geladen</h2>${esc(e.message)}<p><button class="btn primary" data-retry="${esc(id)}">Nochmal versuchen</button></p></div>`;
+    if (sheetCard?.id !== id) return;
+    $("#sheetBody").innerHTML = `<div class="empty"><h2>Karte nicht geladen</h2>${esc(e.message)}<p><button class="btn primary" data-retry="${esc(id)}" data-lg="${lg}">Nochmal versuchen</button></p></div>`;
   }
 }
-let selVariant = "normal";
 function renderCardSheet(card){
   const vars = availableVariants(card);
   if (!vars.includes(selVariant)) selVariant = vars[0];
   const price = marketPrice(card, selVariant);
   const cm = card.pricing?.cardmarket, tp = card.pricing?.tcgplayer;
   const total = card.set?.cardCount?.official;
-  const owned = collection.filter(e => e.cardId === card.id);
+  const owned = collection.filter(e => e.cardId === card.id).sort((a, b) => (a.lang + a.variant).localeCompare(b.lang + b.variant));
   const rows = (pairs, f) => pairs.filter(p => typeof p[1] === "number").map(p => `<tr><td>${p[0]}</td><td>${fmt(p[1], f)}</td></tr>`).join("");
   const normalRows = cm ? rows([["Trend", cm.trend], ["Ø 30 Tage", cm.avg30], ["Ø 7 Tage", cm.avg7], ["Ab", cm.low]]) : "";
   const holoRows = cm ? rows([["Trend", cm["trend-holo"]], ["Ø 30 Tage", cm["avg30-holo"]], ["Ø 7 Tage", cm["avg7-holo"]], ["Ab", cm["low-holo"]]]) : "";
   const tpLabels = { normal:"Normal", holofoil:"Holo", "reverse-holofoil":"Reverse Holo", reverse:"Reverse Holo", "1st-edition":"1. Edition", "1st-edition-holofoil":"1. Ed. Holo", unlimited:"Unlimited", "unlimited-holofoil":"Unlimited Holo" };
   const tpRows = tp ? rows(Object.entries(tp).filter(([k, v]) => v && typeof v === "object").map(([k, v]) => [tpLabels[k] || k, v.marketPrice ?? v.midPrice]), usd) : "";
   const updated = cm?.updated ? new Date(cm.updated) : null;
+  // Deutsch und Englisch teilen sich die Karten-ID, Japanisch hat eigene Sets.
+  const langChoices = sheetCard.lg === "ja" ? ["ja"] : ["de", "en"];
+  if (!langChoices.includes(addLang)) addLang = langChoices[0];
 
   $("#sheetTitle").textContent = card.name;
   $("#sheetBody").innerHTML = `
     <div class="card-img">${card.image ? `<img src="${esc(img(card.image, "high"))}" alt="${esc(card.name)}">` : ""}</div>
     <div class="card-title">
       <h2>${esc(card.name)}</h2>
-      <div class="small">${esc(card.set?.name)} · <span class="num">${esc(card.localId)}${total ? "/" + total : ""}</span></div>
+      <div class="small">${esc(card.set?.name)} · <span class="num">${esc(card.localId)}${total ? "/" + total : ""}</span> ${badge(sheetCard.lg)}</div>
       ${card.rarity ? `<span class="rarity">${esc(card.rarity)}</span>` : ""}
     </div>
     <div class="panel">
@@ -619,16 +713,17 @@ function renderCardSheet(card){
       ${holoRows ? `<div class="ptitle">Cardmarket · Reverse/Holo</div><table class="prices">${holoRows}</table>` : ""}
       ${tpRows ? `<div class="ptitle">TCGplayer (USA)</div><table class="prices">${tpRows}</table>` : ""}
       ${updated && !isNaN(updated) ? `<div class="small">Stand: ${updated.toLocaleDateString("de-DE")}</div>` : ""}
-      ${!cm && !tp ? `<div class="small">Für diese Karte gibt es keine Preisdaten.</div>` : ""}
+      ${!cm && !tp ? `<div class="small">Für diese Karte gibt es in der Datenbank keine Preisdaten${sheetCard.lg === "ja" ? " (bei japanischen Karten häufig)" : ""}.</div>` : ""}
     </div>
     <div class="panel">
       <strong>Meine Sammlung</strong>
+      ${langChoices.length > 1 ? `<div class="variants" role="group" aria-label="Sprache der Karte">${langChoices.map(l => `<button class="chip" data-addlang="${l}" aria-pressed="${l === addLang}">${LANGS[l]}</button>`).join("")}</div>` : ""}
       ${vars.length > 1 ? `<div class="variants">${vars.map(v => `<button class="chip" data-variant="${v}" aria-pressed="${v === selVariant}">${VARIANTS[v]}</button>`).join("")}</div>` : ""}
       ${owned.map(e => `<div class="owned-line">
-          <div><strong>${VARIANTS[e.variant] || e.variant}</strong><div class="small num">${e.price != null ? fmt(e.price * e.qty) : ""}</div></div>
+          <div><strong>${badge(e.lang)} ${VARIANTS[e.variant] || e.variant}</strong><div class="small num">${e.price != null ? fmt(e.price * e.qty) : ""}</div></div>
           <div class="stepper"><button data-dec="${esc(e.key)}" aria-label="Weniger">−</button><span class="num">${e.qty}×</span><button data-inc="${esc(e.key)}" aria-label="Mehr">+</button></div>
         </div>`).join("")}
-      <button class="btn primary block" data-add="${esc(card.id)}">Zur Sammlung hinzufügen</button>
+      <button class="btn primary block" data-add="${esc(card.id)}">${LANGS[addLang]} · ${VARIANTS[selVariant]} hinzufügen</button>
     </div>
     <a class="note" href="https://www.cardmarket.com/de/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name)}" target="_blank" rel="noopener">Auf Cardmarket ansehen ↗</a>
     <p class="note">Preise von Cardmarket über TCGdex. Der Trendpreis gilt für Karten in gutem Zustand (Near Mint).</p>`;
@@ -638,10 +733,11 @@ function renderCardSheet(card){
 $("#sheetBody").addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t) return;
   const card = $("#sheetBody")._card;
-  if (t.dataset.card) { openCard(t.dataset.card); return; }
-  if (t.dataset.retry) { openCard(t.dataset.retry); return; }
+  if (t.dataset.card) { openCard(t.dataset.card, t.dataset.lg); return; }
+  if (t.dataset.retry) { openCard(t.dataset.retry, t.dataset.lg); return; }
   if (t.dataset.variant) { selVariant = t.dataset.variant; renderCardSheet(card); return; }
-  if (t.dataset.add) { addToCollection(card, selVariant); renderCardSheet(card); toast("Zur Sammlung hinzugefügt"); return; }
+  if (t.dataset.addlang) { addLang = t.dataset.addlang; renderCardSheet(card); return; }
+  if (t.dataset.add) { addToCollection(card, selVariant, addLang); renderCardSheet(card); toast("Zur Sammlung hinzugefügt"); return; }
   if (t.dataset.inc || t.dataset.dec) {
     const key = t.dataset.inc || t.dataset.dec;
     const entry = collection.find(x => x.key === key); if (!entry) return;
@@ -651,34 +747,48 @@ $("#sheetBody").addEventListener("click", e => {
   }
 });
 
-/* ---------- Collection ---------- */
-function addToCollection(card, variant){
-  const key = card.id + "|" + variant;
+/* ---------- Sammlung ---------- */
+function addToCollection(card, variant, lg){
+  const key = `${lg}|${card.id}|${variant}`;
   const price = marketPrice(card, variant);
   const e = collection.find(x => x.key === key);
   if (e) { e.qty++; if (price != null) { e.price = price; e.priceAt = Date.now(); } }
-  const setId = card.set?.id || card.id.slice(0, card.id.lastIndexOf("-"));
-  if (!e) collection.push({ key, cardId: card.id, name: card.name, localId: String(card.localId), setId, setName: card.set?.name || setId.toUpperCase(),
+  const setId = card.set?.id || setIdOf(card.id);
+  if (!e) collection.push({ key, lang: lg, cardId: card.id, name: card.name, localId: String(card.localId), setId, setName: card.set?.name || setId.toUpperCase(),
     setTotal: card.set?.cardCount?.official ?? null, setLogo: card.set?.logo ?? null, image: card.image ?? null, variant, qty: 1,
     price, priceAt: price != null ? Date.now() : null, addedAt: Date.now() });
   saveCollection();
 }
 function groups(){
   const map = new Map();
-  for (const e of collection) {
-    if (!map.has(e.setId)) map.set(e.setId, { setId: e.setId, setName: e.setName, setTotal: e.setTotal, setLogo: e.setLogo, entries: [] });
-    const g = map.get(e.setId); g.entries.push(e);
+  for (const e of collection.filter(inView)) {
+    if (!map.has(e.setId)) map.set(e.setId, { setId: e.setId, setName: e.setName, setTotal: e.setTotal, setLogo: e.setLogo, langs: new Set(), entries: [] });
+    const g = map.get(e.setId); g.entries.push(e); g.langs.add(e.lang);
     if (!g.setTotal && e.setTotal) g.setTotal = e.setTotal; if (!g.setLogo && e.setLogo) g.setLogo = e.setLogo;
   }
   return [...map.values()].map(g => ({ ...g,
+    lang: viewLang !== "all" ? viewLang : (g.langs.has("de") ? "de" : g.langs.has("en") ? "en" : "ja"),
     unique: new Set(g.entries.map(e => e.cardId)).size,
     value: g.entries.reduce((s, e) => s + (e.price || 0) * e.qty, 0),
-    latest: Math.max(...g.entries.map(e => e.addedAt)) }));
+    latest: Math.max(...g.entries.map(e => e.addedAt || 0)) }));
 }
+function renderLangBar(){
+  const count = lg => collection.filter(e => lg === "all" || e.lang === lg).reduce((s, e) => s + e.qty, 0);
+  $("#langBar").innerHTML = [["all", "Global"], ...LANG_CODES.map(l => [l, LANGS[l]])]
+    .map(([k, l]) => `<button class="chip" data-viewlang="${k}" aria-pressed="${k === viewLang}">${l}<small>${count(k)}</small></button>`).join("");
+}
+$("#langBar").addEventListener("click", e => {
+  const b = e.target.closest("[data-viewlang]"); if (!b) return;
+  viewLang = b.dataset.viewlang; store.set("ks.viewLang", viewLang);
+  renderCollection(); loadAllSets();
+});
 function renderCollection(){
-  const total = collection.reduce((s, e) => s + (e.price || 0) * e.qty, 0);
-  const count = collection.reduce((s, e) => s + e.qty, 0);
+  const view = collection.filter(inView);
+  const total = view.reduce((s, e) => s + (e.price || 0) * e.qty, 0);
+  const count = view.reduce((s, e) => s + e.qty, 0);
   let gs = groups();
+  renderLangBar();
+  $("#totalLabel").textContent = `${viewLang === "all" ? "Gesamtwert global" : "Wert " + LANGS[viewLang]} · Cardmarket-Trend`;
   $("#totalValue").textContent = fmt(total);
   $("#totalCards").textContent = `${count} ${count === 1 ? "Karte" : "Karten"}`;
   $("#totalSets").textContent = `${gs.length} ${gs.length === 1 ? "Set" : "Sets"}`;
@@ -690,41 +800,49 @@ function renderCollection(){
         : (a, b) => b.latest - a.latest);
   $("#setList").innerHTML = gs.length ? gs.map(g => {
     const pct = g.setTotal ? Math.min(100, g.unique / g.setTotal * 100) : 0;
-    return `<button class="set-row" data-set="${esc(g.setId)}">
+    return `<button class="set-row" data-set="${esc(g.setId)}" data-lg="${g.lang}">
       ${g.setLogo ? `<img src="${esc(g.setLogo)}.webp" alt="" loading="lazy">` : `<span></span>`}
       <div><div class="name">${esc(g.setName)}</div>
-        ${g.setTotal ? `<div class="bar ${pct >= 100 ? "done" : ""}"><i style="width:${pct}%"></i></div><div class="small num">${g.unique} von ${g.setTotal}</div>` : `<div class="small num">${g.unique} Karten</div>`}
+        ${g.setTotal ? `<div class="bar ${pct >= 100 ? "done" : ""}"><i style="width:${pct}%"></i></div><div class="small num">${g.unique} von ${g.setTotal} ${viewLang === "all" ? [...g.langs].map(badge).join(" ") : ""}</div>` : `<div class="small num">${g.unique} Karten</div>`}
       </div>
       <div class="value num">${fmt(g.value)}</div></button>`;
-  }).join("") : `<div class="empty"><h2>Noch keine Karten</h2>Scanne deine erste Karte oder öffne unten ein Set.</div>`;
+  }).join("") : `<div class="empty"><h2>Noch keine Karten</h2>${viewLang === "all" ? "Scanne deine erste Karte oder öffne unten ein Set." : `Keine ${LANGS[viewLang].toLowerCase()}en Karten in deiner Sammlung.`}</div>`;
   renderAllSets();
-  if (openSetId) renderSetDetail();
+  if (openSet) renderSetDetail();
 }
 $("#sortSel").addEventListener("change", renderCollection);
-$("#setList").addEventListener("click", e => { const b = e.target.closest("[data-set]"); if (b) showSet(b.dataset.set); });
-$("#allSetList").addEventListener("click", e => { const b = e.target.closest("[data-set]"); if (b) showSet(b.dataset.set); });
+$("#setList").addEventListener("click", e => { const b = e.target.closest("[data-set]"); if (b) showSet(b.dataset.set, b.dataset.lg); });
+$("#allSetList").addEventListener("click", e => {
+  if (e.target.closest("#retrySets")) { loadAllSets(); return; }
+  const b = e.target.closest("[data-set]"); if (b) showSet(b.dataset.set, b.dataset.lg);
+});
 
-/* Alle Sets aus der Datenbank, neueste zuerst, mit deinem Fortschritt */
-let allSets = null, allSetsError = null;
+/* Alle Sets der gewählten Sprache (Global zeigt die deutschen), neueste zuerst */
+const allSetsLang = () => viewLang === "all" ? "de" : viewLang;
+let allSets = {}, allSetsError = null;
 async function loadAllSets(){
-  try { allSets = (await getSets()).slice().reverse(); allSetsError = null; }
+  const lg = allSetsLang();
+  if (allSets[lg]) { renderAllSets(); return; }
+  allSetsError = null; renderAllSets();
+  try { allSets[lg] = (await getSets(lg)).slice().reverse(); }
   catch (e) { allSetsError = e.message; }
   renderAllSets();
 }
 function renderAllSets(){
-  const box = $("#allSetList");
+  const lg = allSetsLang(), box = $("#allSetList"), list0 = allSets[lg];
+  $("#allSetsTitle").textContent = `Alle Sets · ${LANGS[lg]}`;
   if (allSetsError) { box.innerHTML = `<div class="empty">${esc(allSetsError)} <p><button class="btn" id="retrySets">Nochmal versuchen</button></p></div>`; return; }
-  if (!allSets) { box.innerHTML = `<div class="spinner"></div>`; return; }
+  if (!list0) { box.innerHTML = `<div class="spinner"></div>`; $("#allSetsCount").textContent = ""; return; }
   const ownedBySet = {};
-  for (const e of collection) (ownedBySet[e.setId] ||= new Set()).add(e.cardId);
+  for (const e of collection.filter(inView)) (ownedBySet[e.setId] ||= new Set()).add(e.cardId);
   const q = $("#allSetFilter").value.trim().toLowerCase();
-  const list = q ? allSets.filter(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q)) : allSets;
-  $("#allSetsCount").textContent = `${allSets.length} Sets`;
+  const list = q ? list0.filter(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q)) : list0;
+  $("#allSetsCount").textContent = `${list0.length} Sets`;
   box.innerHTML = list.length ? list.map(s => {
     const total = s.cardCount?.official || s.cardCount?.total || 0;
     const have = ownedBySet[s.id]?.size || 0;
     const pct = total ? Math.min(100, have / total * 100) : 0;
-    return `<button class="set-row" data-set="${esc(s.id)}">
+    return `<button class="set-row" data-set="${esc(s.id)}" data-lg="${lg}">
       ${s.logo ? `<img src="${esc(s.logo)}.webp" alt="" loading="lazy">` : `<span></span>`}
       <div><div class="name">${esc(s.name)}</div>
         <div class="bar ${pct >= 100 ? "done" : ""}"><i style="width:${pct}%"></i></div>
@@ -733,60 +851,129 @@ function renderAllSets(){
   }).join("") : `<div class="empty">Kein Set gefunden.</div>`;
 }
 $("#allSetFilter").addEventListener("input", renderAllSets);
-$("#allSetList").addEventListener("click", e => { if (e.target.closest("#retrySets")) { allSetsError = null; renderAllSets(); loadAllSets(); } });
 
-let openSetId = null, setFilter = "all", setData = null;
-async function showSet(id){
-  openSetId = id; setData = null; setFilter = "all";
+/* ---------- Set-Ansicht ---------- */
+let openSet = null;   // { id, lg }
+let setFilter = "all", setSort = "number", setData = null, priceLoad = null;
+async function showSet(id, lg){
+  openSet = { id, lg }; setData = null; setFilter = "all"; setSort = "number"; priceLoad = null;
   $("#collectionList").hidden = true; $("#setDetail").hidden = false;
   renderSetDetail(); $("#view-collection").scrollTop = 0;
-  try { setData = await getSetAny(id); } catch (e) { setData = { error: e.message }; }
-  if (openSetId === id) renderSetDetail();
+  try { setData = await getSetAny(id, lg); } catch (e) { setData = { error: e.message }; }
+  if (openSet?.id === id) renderSetDetail();
+}
+function closeSetDetail(){ openSet = null; $("#setDetail").hidden = true; $("#collectionList").hidden = false; }
+function ensureSetPrices(){
+  if (!setData?.cards || priceLoad) return;
+  const { id, lg } = openSet;
+  priceLoad = { done: 0, total: setData.cards.length, running: true };
+  loadPrices(setData.cards, lg, (done, total) => {
+    if (openSet?.id !== id) return;
+    priceLoad = { done, total, running: done < total };
+    renderSetDetail();
+  });
 }
 function renderSetDetail(){
-  const entries = collection.filter(e => e.setId === openSetId);
+  if (!openSet) return;
+  const lg = openSet.lg;
+  const entries = collection.filter(e => e.setId === openSet.id && inView(e));
   const qty = {}; for (const e of entries) qty[e.cardId] = (qty[e.cardId] || 0) + e.qty;
   const owned = Object.keys(qty).length;
   const value = entries.reduce((s, e) => s + (e.price || 0) * e.qty, 0);
   const name = setData?.name || entries[0]?.setName || "Set";
-  const total = setData?.cardCount?.official || entries[0]?.setTotal || setData?.cards?.length || 0;
+  const official = setData?.cardCount?.official || entries[0]?.setTotal || 0;
+  const total = official || setData?.cards?.length || 0;
   const pct = total ? Math.min(100, owned / total * 100) : 0;
-  let cards = setData?.cards || [];
+  const priceOf = c => cachedPrice(lg, c.id)?.p ?? null;
+  const allCards = setData?.cards || [];
+
+  let cards = allCards;
   if (setFilter === "owned") cards = cards.filter(c => qty[c.id]);
   if (setFilter === "missing") cards = cards.filter(c => !qty[c.id]);
+  if (setSort === "name") cards = [...cards].sort((a, b) => a.name.localeCompare(b.name, "de"));
+  if (setSort === "price-desc" || setSort === "price-asc") {
+    const dir = setSort === "price-desc" ? -1 : 1;
+    cards = [...cards].sort((a, b) => {
+      const pa = priceOf(a), pb = priceOf(b);
+      if (pa == null && pb == null) return 0; if (pa == null) return 1; if (pb == null) return -1;
+      return (pa - pb) * dir;
+    });
+  }
+
+  // Restwert zum Vervollständigen
+  let missingHtml = "";
+  if (setFilter === "missing" && setData?.cards) {
+    const missing = allCards.filter(c => !qty[c.id]);
+    const base = missing.filter(c => isBaseCard(c, official));
+    const sum = list => list.reduce((s, c) => s + (priceOf(c) || 0), 0);
+    const noPrice = missing.filter(c => cachedPrice(lg, c.id) && priceOf(c) == null).length;
+    const loading = priceLoad?.running;
+    missingHtml = `<div class="missing-panel">
+      <div class="eyebrow">${loading ? "Wird berechnet …" : "Kosten zum Vervollständigen"}</div>
+      ${official && base.length !== missing.length ? `
+        <div class="mrow"><span>Grundset (Nr. 1–${official}) · <span class="num">${base.length}</span> ${base.length === 1 ? "Karte" : "Karten"}</span><span class="mval num">${fmt(sum(base))}</span></div>
+        <div class="mrow"><span>Komplett inkl. Secret Rares · <span class="num">${missing.length}</span> ${missing.length === 1 ? "Karte" : "Karten"}</span><span class="mval sub num">${fmt(sum(missing))}</span></div>`
+      : `<div class="mrow"><span><span class="num">${missing.length}</span> ${missing.length === 1 ? "fehlende Karte" : "fehlende Karten"}</span><span class="mval num">${fmt(sum(missing))}</span></div>`}
+      ${loading ? `<div class="loadbar"><i style="width:${priceLoad.done / priceLoad.total * 100}%"></i></div><div class="small num">Preise ${priceLoad.done}/${priceLoad.total} geladen</div>` : ""}
+      ${!loading && noPrice ? `<div class="small">${noPrice} Karten ohne Preisangabe sind nicht eingerechnet.</div>` : ""}
+      <div class="small">Summe der Cardmarket-Trendpreise, jeweils günstigste Variante.</div>
+    </div>`;
+  }
+  const sortLoading = (setSort.startsWith("price") && priceLoad?.running)
+    ? `<div class="missing-panel"><div class="loadbar"><i style="width:${priceLoad.done / priceLoad.total * 100}%"></i></div><div class="small num">Preise ${priceLoad.done}/${priceLoad.total} geladen</div></div>` : "";
+
   $("#setDetail").innerHTML = `
     <button class="back" id="backToSets">‹ Sammlung</button>
     <div class="set-hero">
       ${setData?.logo ? `<img src="${esc(setData.logo)}.webp" alt="${esc(name)}">` : `<h2>${esc(name)}</h2>`}
       <div class="set-stats">
-        <div><div class="big num">${owned}/${total || "?"}</div><div class="small">Karten gesammelt</div></div>
+        <div><div class="big num">${owned}/${total || "?"}</div><div class="small">Karten gesammelt ${viewLang === "all" ? "· global" : badge(viewLang)}</div></div>
         <div style="text-align:right"><div class="big num" style="color:var(--accent)">${fmt(value)}</div><div class="small">Wert im Set</div></div>
       </div>
       ${total ? `<div class="bar ${pct >= 100 ? "done" : ""}"><i style="width:${pct}%"></i></div>` : ""}
     </div>
-    <div class="filters">${[["all","Alle"],["owned","Vorhanden"],["missing","Fehlend"]].map(([k,l]) => `<button class="chip" data-filter="${k}" aria-pressed="${setFilter === k}">${l}</button>`).join("")}</div>
+    <div class="set-tools">
+      <div class="filters">${[["all","Alle"],["owned","Vorhanden"],["missing","Fehlend"]].map(([k,l]) => `<button class="chip" data-filter="${k}" aria-pressed="${setFilter === k}">${l}</button>`).join("")}</div>
+      <select id="setSortSel" aria-label="Karten sortieren">
+        <option value="number"${setSort === "number" ? " selected" : ""}>Nummer</option>
+        <option value="price-desc"${setSort === "price-desc" ? " selected" : ""}>Preis absteigend</option>
+        <option value="price-asc"${setSort === "price-asc" ? " selected" : ""}>Preis aufsteigend</option>
+        <option value="name"${setSort === "name" ? " selected" : ""}>Name</option>
+      </select>
+    </div>
+    ${missingHtml}${missingHtml ? "" : sortLoading}
     ${!setData ? `<div class="spinner"></div>` : setData.error ? `<div class="empty">${esc(setData.error)}</div>` :
-      `<div class="grid">${cards.map(c => `<button class="tile ${qty[c.id] ? "" : "missing"}" data-card="${esc(c.id)}">
-        <div class="img">${c.image ? `<img src="${esc(img(c.image))}" alt="${esc(c.name)}" loading="lazy">` : ""}</div>
-        ${qty[c.id] ? `<span class="qty">${qty[c.id]}×</span>` : ""}
-        <span class="cap num">${esc(c.localId)} · ${esc(c.name)}</span></button>`).join("")}</div>`}`;
+      cards.length ? `<div class="grid">${cards.map(c => {
+        const p = priceOf(c);
+        return `<button class="tile ${qty[c.id] ? "" : "missing"}" data-card="${esc(c.id)}">
+          <div class="img">${c.image ? `<img src="${esc(img(c.image))}" alt="${esc(c.name)}" loading="lazy">` : ""}</div>
+          ${qty[c.id] ? `<span class="qty">${qty[c.id]}×</span>` : ""}
+          <span class="cap num">${esc(c.localId)} · ${esc(c.name)}</span>
+          ${p != null ? `<span class="price">${fmt(p)}</span>` : ""}</button>`;
+      }).join("")}</div>` : `<div class="empty">${setFilter === "missing" ? "Set vollständig – Glückwunsch!" : "Keine Karten in dieser Auswahl."}</div>`}`;
 }
 $("#setDetail").addEventListener("click", e => {
-  if (e.target.closest("#backToSets")) { openSetId = null; $("#setDetail").hidden = true; $("#collectionList").hidden = false; return; }
-  const f = e.target.closest("[data-filter]"); if (f) { setFilter = f.dataset.filter; renderSetDetail(); return; }
-  const c = e.target.closest("[data-card]"); if (c) openCard(c.dataset.card);
+  if (e.target.closest("#backToSets")) { closeSetDetail(); return; }
+  const f = e.target.closest("[data-filter]");
+  if (f) { setFilter = f.dataset.filter; if (setFilter === "missing") ensureSetPrices(); renderSetDetail(); return; }
+  const c = e.target.closest("[data-card]"); if (c) openCard(c.dataset.card, openSet.lg);
+});
+$("#setDetail").addEventListener("change", e => {
+  if (e.target.id !== "setSortSel") return;
+  setSort = e.target.value; if (setSort.startsWith("price")) ensureSetPrices(); renderSetDetail();
 });
 
 $("#refreshPrices").addEventListener("click", async () => {
   const btn = $("#refreshPrices"), label = btn.querySelector("span");
-  const ids = [...new Set(collection.map(e => e.cardId))]; if (!ids.length) return;
+  const items = [...new Map(collection.map(e => [e.lang + "|" + e.cardId, e])).values()];
+  if (!items.length) return;
   btn.disabled = true; let fails = 0;
-  for (let i = 0; i < ids.length; i++) {
-    label.textContent = `Aktualisiere ${i + 1}/${ids.length} …`;
+  for (let i = 0; i < items.length; i++) {
+    label.textContent = `Aktualisiere ${i + 1}/${items.length} …`;
+    const { lang: lg, cardId } = items[i];
     try {
-      delete cache.card[lang + ids[i]];
-      const card = await getCard(ids[i]);
-      for (const e of collection) if (e.cardId === ids[i]) { const p = marketPrice(card, e.variant); if (p != null) { e.price = p; e.priceAt = Date.now(); } }
+      const card = await getCard(cardId, lg, true);
+      for (const e of collection) if (e.cardId === cardId && e.lang === lg) { const p = marketPrice(card, e.variant); if (p != null) { e.price = p; e.priceAt = Date.now(); } }
     } catch { fails++; }
   }
   saveCollection();
@@ -794,7 +981,7 @@ $("#refreshPrices").addEventListener("click", async () => {
   toast(fails ? `Aktualisiert, ${fails} Karten ohne Antwort` : "Preise aktualisiert");
 });
 $("#exportBtn").addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify({ app: "kartenscanner", version: 1, exportedAt: new Date().toISOString(), collection }, null, 2)], { type: "application/json" });
+  const blob = new Blob([JSON.stringify({ app: "kartenscanner", version: 2, exportedAt: new Date().toISOString(), collection }, null, 2)], { type: "application/json" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = `kartensammlung-${new Date().toISOString().slice(0, 10)}.json`; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
@@ -803,45 +990,40 @@ $("#importInput").addEventListener("change", async e => {
   const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
   try {
     const data = JSON.parse(await file.text());
-    const list = Array.isArray(data) ? data : data.collection;
-    if (!Array.isArray(list)) throw 0;
+    const list = migrate(Array.isArray(data) ? data : data.collection);
     let added = 0;
     for (const x of list) {
-      if (!x || !x.key || !x.cardId) continue;
       const ex = collection.find(c => c.key === x.key);
-      if (ex) ex.qty = Math.max(ex.qty, x.qty || 1); else { collection.push(x); added++; }
+      if (ex) ex.qty = Math.max(ex.qty, x.qty); else { collection.push(x); added++; }
     }
     saveCollection(); toast(`${added} Einträge geladen`);
   } catch { toast("Die Datei ist keine gültige Sicherung"); }
 });
 
-/* ---------- Search ---------- */
-function renderLang(){ $$("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang))); }
+/* ---------- Suche ---------- */
+function renderLang(){ $$("[data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === searchLang))); }
 $$("[data-lang]").forEach(b => b.addEventListener("click", () => {
-  lang = b.dataset.lang; store.set("ks.lang", lang); renderLang();
-  allSets = null;
+  searchLang = b.dataset.lang; store.set("ks.lang", searchLang); renderLang();
   if ($("#searchInput").value.trim()) runSearch();
 }));
 async function runSearch(){
   const q = $("#searchInput").value.trim(); if (!q) return;
+  const lg = searchLang;
   const out = $("#searchResults"); out.innerHTML = `<div class="spinner"></div>`;
   try {
-    const res = await searchCards(q);
-    out.innerHTML = res.length ? `<div class="grid">${res.map(c => `<button class="tile" data-card="${esc(c.id)}">
+    const res = await searchCards(q, lg);
+    out.innerHTML = res.length ? `<div class="grid">${res.map(c => `<button class="tile" data-card="${esc(c.id)}" data-lg="${lg}">
         <div class="img">${c.image ? `<img src="${esc(img(c.image))}" alt="${esc(c.name)}" loading="lazy">` : ""}</div>
-        <span class="cap">${esc(c.name)}</span><span class="cap num">${esc(c.id.slice(0, c.id.lastIndexOf("-")).toUpperCase())} · ${esc(c.localId)}</span></button>`).join("")}</div>`
+        <span class="cap">${esc(c.name)}</span><span class="cap num">${esc(setIdOf(c.id).toUpperCase())} · ${esc(c.localId)}</span></button>`).join("")}</div>`
       : `<div class="empty"><h2>Nichts gefunden</h2>Probier eine andere Schreibweise oder wechsle oben die Sprache.</div>`;
   } catch (e) { out.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 }
 $("#searchForm").addEventListener("submit", e => { e.preventDefault(); $("#searchInput").blur(); runSearch(); });
-$("#searchResults").addEventListener("click", e => { const c = e.target.closest("[data-card]"); if (c) openCard(c.dataset.card); });
+$("#searchResults").addEventListener("click", e => { const c = e.target.closest("[data-card]"); if (c) openCard(c.dataset.card, c.dataset.lg); });
 
 /* ---------- Tabs ---------- */
-function closeSetDetail(){ openSetId = null; $("#setDetail").hidden = true; $("#collectionList").hidden = false; }
 function showTab(name){
-  // Tab "Sammlung" führt immer zurück zur Übersicht aller Sets.
-  if (name === "collection") closeSetDetail();
-  if (name === "collection" && !allSets) loadAllSets();
+  if (name === "collection") { closeSetDetail(); loadAllSets(); }
   $$("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
   ["scan","collection","search"].forEach(t => $("#view-" + t).hidden = t !== name);
   if (name === "scan") { if (store.get("ks.camOn", false)) startCamera(); }
@@ -854,6 +1036,8 @@ document.addEventListener("visibilitychange", () => {
   else if (!$("#view-scan").hidden && store.get("ks.camOn", false)) startCamera();
 });
 
+store.set("ks.collection", collection);   // migrierte Einträge sichern
+renderScanLang();
 renderLang();
 renderCollection();
 showTab("scan");
