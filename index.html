@@ -21,7 +21,7 @@
 :root{
   --bg:#f2f3f7; --surface:#ffffff; --surface-2:#e8eaf1; --line:#d6d9e3;
   --fg:#171826; --muted:#5f6375; --accent:#d8323a; --accent-fg:#ffffff;
-  --gold:#e9a90f; --good:#1f9d57;
+  --gold:#e9a90f; --good:#1f9d57; --warn:#9a5b00;
   --display:"Archivo", "Arial Narrow", system-ui, sans-serif;
   --body:"Barlow", system-ui, -apple-system, sans-serif;
   --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
@@ -30,7 +30,7 @@
 }
 @media (prefers-color-scheme: dark){
   :root{ --bg:#14151f; --surface:#1d1f2c; --surface-2:#272a3a; --line:#33374a;
-    --fg:#eef0f7; --muted:#a2a7bc; --accent:#ff5259; --accent-fg:#1a0b0c; --gold:#f5c33b; --good:#3ccf7f;
+    --fg:#eef0f7; --muted:#a2a7bc; --accent:#ff5259; --accent-fg:#1a0b0c; --gold:#f5c33b; --good:#3ccf7f; --warn:#f5c33b;
     color-scheme:dark; }
 }
 *{box-sizing:border-box}
@@ -238,6 +238,23 @@ a{color:var(--accent)}
 .factor:last-child{border-bottom:0}
 .factor.limit strong{color:var(--accent)}
 .grade-tag{font:700 13px/1 var(--mono);background:var(--surface-2);padding:5px 8px;border-radius:7px;white-space:nowrap}
+.gcam{position:relative;width:100%;aspect-ratio:3/4;max-height:42vh;border-radius:14px;overflow:hidden;background:#0b0c12}
+.gcam video,.gcam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.gcam-start{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:14px;padding:24px;text-align:center;color:#eef0f7}
+.gcam-start p{margin:0;max-width:34ch;color:#c9ccd8}
+.gstatus{position:absolute;left:12px;right:12px;bottom:12px;background:rgba(20,21,31,.86);color:#eef0f7;border-radius:12px;padding:9px 12px;font-size:14px;font-weight:600;text-align:center}
+.gstatus.warn{background:rgba(120,60,0,.92)}
+.thumbs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.thumb{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:6px;justify-items:center;text-align:center;align-content:start}
+.thumb canvas{width:100%;border-radius:6px;background:#0b0c12;display:block}
+.thumb-empty{width:100%;aspect-ratio:63/88;border-radius:6px;border:1px dashed var(--line);display:grid;place-items:center;font-size:13px;color:var(--muted);padding:8px}
+.side-card{display:grid;grid-template-columns:104px 1fr;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px;align-items:start}
+.side-card canvas{width:104px;border-radius:6px;background:#0b0c12;display:block}
+.issue{font-size:13px;color:var(--warn)}
+.badge.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.badge.check{background:color-mix(in srgb,var(--gold) 28%,transparent);color:var(--fg)}
+.cond-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:grid;gap:10px}
+.cond-chips{display:flex;flex-wrap:wrap;gap:6px}
 </style>
 </head>
 <body>
@@ -1103,102 +1120,280 @@ const BACK_CAPS  = [[75,10],[90,9]];
 const capFor = (worst, table) => { for (const [lim, g] of table) if (worst <= lim) return g; return 2; };
 const GRADE_NAMES = {10:"Gem Mint",9:"Mint",8:"Near Mint–Mint",7:"Near Mint",6:"Excellent–Mint",5:"Excellent",4:"Very Good–Excellent",3:"Very Good",2:"Good",1:"Poor"};
 const COND = {
-  corners: { title: "Ecken", intro: "Sieh dir die vergrößerten Ecken an. Weiße Punkte, Knicke oder Rundungen kosten Punkte.", opts: [
-    [10, "Perfekt scharf", "Auch in der Vergrößerung nichts zu sehen"],
-    [9, "Ein winziger Makel", "Ein kaum sichtbarer weißer Punkt an einer Ecke"],
-    [8, "Leichte Abnutzung", "Kleine weiße Punkte an mehreren Ecken"],
-    [7, "Sichtbare Abnutzung", "Leicht ausgefranste Ecken"],
-    [5, "Deutlich abgenutzt", "Ecken spürbar gerundet"],
-    [3, "Stark beschädigt", "Geknickte oder stark gerundete Ecken"]]},
-  edges: { title: "Kanten", intro: "Weiße Stellen sieht man am besten auf der blauen Rückseite.", opts: [
+  corners: { title: "Ecken", opts: [
+    [10, "Perfekt", "Auch in der Vergrößerung nichts zu sehen"],
+    [9, "Winziger Makel", "Ein kaum sichtbarer weißer Punkt an einer Ecke"],
+    [8, "Leichte Spuren", "Kleine weiße Punkte an mehreren Ecken"],
+    [7, "Sichtbar", "Leicht ausgefranste Ecken"],
+    [5, "Deutlich", "Ecken spürbar gerundet"],
+    [3, "Stark", "Geknickte oder stark gerundete Ecken"]]},
+  edges: { title: "Kanten", opts: [
     [10, "Perfekt", "Saubere Kanten ohne weiße Stellen"],
-    [9, "Ein winziger Makel", "Ein einzelner, kaum sichtbarer Punkt"],
+    [9, "Winziger Makel", "Ein einzelner, kaum sichtbarer Punkt"],
     [8, "Leichte Spuren", "Einzelne weiße Pünktchen an den Kanten"],
-    [7, "Sichtbare Spuren", "Mehrere weiße Stellen"],
-    [5, "Deutlich abgenutzt", "Kantenausbrüche oder durchgehend weiße Stellen"],
-    [3, "Stark beschädigt", "Eingerissene oder ausgefranste Kanten"]]},
-  surface: { title: "Oberfläche", intro: "Halte die Karte schräg unter eine Lampe und kipp sie langsam. So siehst du Kratzer, Druckfehler und Dellen.", opts: [
+    [7, "Sichtbar", "Mehrere weiße Stellen"],
+    [5, "Deutlich", "Kantenausbrüche oder durchgehend weiße Stellen"],
+    [3, "Stark", "Eingerissene oder ausgefranste Kanten"]]},
+  surface: { title: "Oberfläche", opts: [
     [10, "Makellos", "Voller Glanz, keine Kratzer, keine Drucklinien"],
-    [9, "Ein winziger Makel", "z. B. eine feine Drucklinie oder ein Haarkratzer"],
+    [9, "Winziger Makel", "z. B. eine feine Drucklinie oder ein Haarkratzer"],
     [8, "Leichte Spuren", "Ein, zwei feine Kratzer im Licht sichtbar"],
-    [7, "Sichtbare Spuren", "Mehrere Kratzer oder leichter Glanzverlust"],
-    [5, "Deutliche Spuren", "Kratzer auch ohne Licht sichtbar"],
-    [3, "Knick oder Delle", "Schon ein kleiner Knick drückt die Note stark"]]}
+    [7, "Sichtbar", "Mehrere Kratzer oder leichter Glanzverlust"],
+    [5, "Deutlich", "Kratzer auch ohne Licht sichtbar"],
+    [3, "Knick/Delle", "Schon ein kleiner Knick drückt die Note stark"]]}
 };
-const GR_STEPS = [["front","Vorderseite"],["back","Rückseite"],["corners","Ecken"],["edges","Kanten"],["surface","Oberfläche"],["result","Einschätzung"]];
+const GR_STEPS = [["capture","Fotos"],["centering","Zentrierung"],["condition","Zustand"],["result","Einschätzung"]];
 const LINE_DEFS = [["oL","Außen links","v"],["iL","Innen links","v"],["iR","Innen rechts","v"],["oR","Außen rechts","v"],
                    ["oT","Außen oben","h"],["iT","Innen oben","h"],["iB","Innen unten","h"],["oB","Außen unten","h"]];
+const CARD_RATIO = 63 / 88;
+const SIDE_NAME = { front: "Vorderseite", back: "Rückseite" };
 let gradings = store.get("ks.gradings", {});
 let gr = null;
 const gradingOpen = () => !$("#view-grading").hidden;
 
-/** Neuen Check beginnen – optional für eine bestimmte Karte (dann wird das Ergebnis dort gespeichert). */
 function openGrading(ctx){
-  gr = { ctx, step: 0, front: null, back: null, backSkipped: false, cond: {}, sel: "oL", drag: null };
+  gr = { ctx, step: 0, front: null, back: null, backSkipped: false, capSide: "front", cond: {}, condUser: {}, auto: null,
+         editSide: null, sel: "oL", drag: null, processing: false, cands: null, idStatus: "", camMsg: "" };
+  gHist = []; gPauseUntil = 0;
   renderGrading();
 }
 const restartGrading = () => openGrading(null);
 $("#grClose").addEventListener("click", restartGrading);
 
-/* Bild laden und Linien automatisch vorschlagen */
-function toWorkCanvas(src, w0, h0){
-  const s = Math.min(1, 1600 / Math.max(w0, h0));
+/* ===== Bildverarbeitung ===== */
+function toWorkCanvas(src, w0, h0, max = 1600){
+  const s = Math.min(1, max / Math.max(w0, h0));
   const c = document.createElement("canvas"); c.width = Math.round(w0 * s); c.height = Math.round(h0 * s);
   c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
   return c;
 }
-function detectLines(canvas){
-  const W = canvas.width, H = canvas.height, s = Math.min(1, 600 / Math.max(W, H));
-  const w = Math.round(W * s), h = Math.round(H * s);
+const median = a => { const b = Float64Array.from(a).sort(); return b.length ? b[b.length >> 1] : 0; };
+
+/** Gerade durch Punkte [t, v] mit v = a·t + b, Ausreißer werden verworfen. */
+function fitLine(pts){
+  let P = pts, a = 0, b = 0;
+  for (let it = 0; it < 3 && P.length >= 2; it++) {
+    let st = 0, sv = 0, stt = 0, stv = 0; const n = P.length;
+    for (const [t, v] of P) { st += t; sv += v; stt += t * t; stv += t * v; }
+    const den = n * stt - st * st;
+    a = den ? (n * stv - st * sv) / den : 0; b = (sv - a * st) / n;
+    const res = P.map(([t, v]) => Math.abs(v - (a * t + b)));
+    const lim = Math.max(1.2, 2.5 * median(res));
+    P = P.filter((p, i) => res[i] <= lim);
+  }
+  return { a, b };
+}
+
+/** Findet die Karte im Bild: vier Kanten per Liniensfit, Ecken als Schnittpunkte. */
+function detectQuad(src, sw, sh, maxSide = 480){
+  const s = Math.min(1, maxSide / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * s)), h = Math.max(1, Math.round(sh * s));
   const c = document.createElement("canvas"); c.width = w; c.height = h;
-  const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(canvas, 0, 0, w, h);
+  const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(src, 0, 0, w, h);
   const d = x.getImageData(0, 0, w, h).data;
+  // Hintergrundfarbe aus dem Bildrand
+  const ring = Math.max(2, Math.round(Math.min(w, h) * .03)), R = [], G = [], B = [];
+  for (let j = 0; j < h; j += 2) for (let i = 0; i < w; i += 2) {
+    if (i >= ring && i < w - ring && j >= ring && j < h - ring) continue;
+    const k = (j * w + i) * 4; R.push(d[k]); G.push(d[k+1]); B.push(d[k+2]);
+  }
+  const br = median(R), bg = median(G), bb = median(B);
+  const mask = new Uint8Array(w * h);
+  for (let i = 0, k = 0; i < w * h; i++, k += 4)
+    mask[i] = Math.abs(d[k] - br) + Math.abs(d[k+1] - bg) + Math.abs(d[k+2] - bb) > 60 ? 1 : 0;
+  // größte zusammenhängende Fläche
+  const lab = new Int32Array(w * h), queue = new Int32Array(w * h);
+  let best = 0, bestSize = 0, cur = 0;
+  for (let p = 0; p < w * h; p++) {
+    if (!mask[p] || lab[p]) continue;
+    cur++; let qh = 0, qt = 0, size = 0; queue[qt++] = p; lab[p] = cur;
+    while (qh < qt) {
+      const q = queue[qh++]; size++;
+      const qx = q % w, qy = (q / w) | 0;
+      if (qx > 0 && mask[q-1] && !lab[q-1]) { lab[q-1] = cur; queue[qt++] = q - 1; }
+      if (qx < w-1 && mask[q+1] && !lab[q+1]) { lab[q+1] = cur; queue[qt++] = q + 1; }
+      if (qy > 0 && mask[q-w] && !lab[q-w]) { lab[q-w] = cur; queue[qt++] = q - w; }
+      if (qy < h-1 && mask[q+w] && !lab[q+w]) { lab[q+w] = cur; queue[qt++] = q + w; }
+    }
+    if (size > bestSize) { bestSize = size; best = cur; }
+  }
+  const fail = reason => ({ ok: false, reason });
+  if (bestSize < w * h * .1) return fail("Keine Karte erkannt. Leg sie auf einen dunklen, einfarbigen Untergrund.");
+  const minX = new Int32Array(h).fill(-1), maxX = new Int32Array(h).fill(-1), minY = new Int32Array(w).fill(-1), maxY = new Int32Array(w).fill(-1);
+  let x0 = w, x1 = 0, y0 = h, y1 = 0;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    if (lab[j * w + i] !== best) continue;
+    if (minX[j] < 0) minX[j] = i; maxX[j] = i;
+    if (minY[i] < 0) minY[i] = j; maxY[i] = j;
+    if (i < x0) x0 = i; if (i > x1) x1 = i; if (j < y0) y0 = j; if (j > y1) y1 = j;
+  }
+  if (x0 <= 1 || y0 <= 1 || x1 >= w - 2 || y1 >= h - 2) return fail("Die Karte ist angeschnitten. Lass rundherum etwas Platz.");
+  const L = [], Rr = [], T = [], Bt = [];
+  for (let j = Math.round(y0 + (y1 - y0) * .15); j <= y1 - (y1 - y0) * .15; j++) if (minX[j] >= 0) { L.push([j, minX[j]]); Rr.push([j, maxX[j] + 1]); }
+  for (let i = Math.round(x0 + (x1 - x0) * .15); i <= x1 - (x1 - x0) * .15; i++) if (minY[i] >= 0) { T.push([i, minY[i]]); Bt.push([i, maxY[i] + 1]); }
+  const fl = fitLine(L), fr = fitLine(Rr), ft = fitLine(T), fb = fitLine(Bt);
+  // Schnittpunkt einer senkrechten (x = a·y + b) mit einer waagerechten (y = c·x + d) Kante
+  const cross = (v, hz) => { const X = (v.a * hz.b + v.b) / (1 - v.a * hz.a); return { x: X / s, y: (hz.a * X + hz.b) / s }; };
+  const quad = [cross(fl, ft), cross(fr, ft), cross(fr, fb), cross(fl, fb)];
+  const dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+  const top = dist(quad[0], quad[1]), bottom = dist(quad[3], quad[2]), left = dist(quad[0], quad[3]), right = dist(quad[1], quad[2]);
+  const ratio = ((top + bottom) / 2) / ((left + right) / 2);
+  if (ratio > 1.15) return fail("Halte die Karte hochkant.");
+  if (Math.abs(ratio - CARD_RATIO) > .12) return fail("Kartenform nicht klar erkannt. Fotografiere senkrecht von oben.");
+  const tilt = Math.max(top / bottom, bottom / top, left / right, right / left);
+  // Schärfe (mittlere Laplace-Antwort im Karteninneren) und mittlere Farbe
+  let lap = 0, n = 0, mr = 0, mg = 0, mb = 0, mn = 0;
+  const ix0 = Math.round(x0 + (x1 - x0) * .15), ix1 = Math.round(x1 - (x1 - x0) * .15), iy0 = Math.round(y0 + (y1 - y0) * .15), iy1 = Math.round(y1 - (y1 - y0) * .15);
+  const gray = k => d[k] * .3 + d[k+1] * .59 + d[k+2] * .11;
+  for (let j = iy0; j < iy1; j += 2) for (let i = ix0; i < ix1; i += 2) {
+    const k = (j * w + i) * 4;
+    lap += Math.abs(4 * gray(k) - gray(k - 4) - gray(k + 4) - gray(k - w * 4) - gray(k + w * 4)); n++;
+    mr += d[k]; mg += d[k+1]; mb += d[k+2]; mn++;
+  }
+  return { ok: true, quad, tilt, sharp: lap / Math.max(1, n), mean: [mr / mn, mg / mn, mb / mn], area: bestSize / (w * h) };
+}
+
+/** Homographie (bildet 4 Punkte "from" auf "to" ab). */
+function homography(from, to){
+  const A = [];
+  for (let i = 0; i < 4; i++) {
+    const { x, y } = from[i], { x: u, y: v } = to[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y, u]);
+    A.push([0, 0, 0, x, y, 1, -v * x, -v * y, v]);
+  }
+  for (let c = 0; c < 8; c++) {
+    let p = c; for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]];
+    for (let r = 0; r < 8; r++) {
+      if (r === c) continue;
+      const f = A[r][c] / A[c][c];
+      for (let k = c; k < 9; k++) A[r][k] -= f * A[c][k];
+    }
+  }
+  return [...A.map((row, i) => row[8] / row[i]), 1];
+}
+/** Karte perspektivisch geradeziehen, mit schmalem Rand drumherum. */
+function warpCard(src, quad){
+  const W = 900, H = Math.round(W / CARD_RATIO), m = Math.round(W * .035);
+  const ow = W + 2 * m, oh = H + 2 * m;
+  const dst = [{x:m,y:m},{x:m+W,y:m},{x:m+W,y:m+H},{x:m,y:m+H}];
+  const Hm = homography(dst, quad);
+  const sd = src.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, src.width, src.height).data;
+  const sw = src.width, sh = src.height;
+  const out = document.createElement("canvas"); out.width = ow; out.height = oh;
+  const octx = out.getContext("2d", { willReadFrequently: true }), od = octx.createImageData(ow, oh), o = od.data;
+  for (let y = 0; y < oh; y++) for (let x = 0; x < ow; x++) {
+    const z = Hm[6] * x + Hm[7] * y + 1;
+    const sx = (Hm[0] * x + Hm[1] * y + Hm[2]) / z, sy = (Hm[3] * x + Hm[4] * y + Hm[5]) / z;
+    const k = (y * ow + x) * 4;
+    if (sx < 0 || sy < 0 || sx >= sw - 1 || sy >= sh - 1) { o[k] = o[k+1] = o[k+2] = 0; o[k+3] = 255; continue; }
+    const x0 = sx | 0, y0 = sy | 0, fx = sx - x0, fy = sy - y0;
+    const i00 = (y0 * sw + x0) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4;
+    for (let ch = 0; ch < 3; ch++)
+      o[k+ch] = (sd[i00+ch] * (1-fx) + sd[i10+ch] * fx) * (1-fy) + (sd[i01+ch] * (1-fx) + sd[i11+ch] * fx) * fy;
+    o[k+3] = 255;
+  }
+  octx.putImageData(od, 0, 0);
+  return { img: out, m, W, H };
+}
+
+/* Kantenprofile im geradegezogenen Bild */
+function profiles(d, w, h){
   const at = (i, j) => (j * w + i) * 4;
   const diff = (a, b) => Math.abs(d[a] - d[b]) + Math.abs(d[a+1] - d[b+1]) + Math.abs(d[a+2] - d[b+2]);
-  const colProfile = (y0, y1) => { const p = new Float32Array(w); for (let j = Math.max(0, y0|0); j < Math.min(h, y1|0); j++) for (let i = 1; i < w; i++) p[i] += diff(at(i, j), at(i-1, j)); return p; };
-  const rowProfile = (x0, x1) => { const p = new Float32Array(h); for (let i = Math.max(0, x0|0); i < Math.min(w, x1|0); i++) for (let j = 1; j < h; j++) p[j] += diff(at(i, j), at(i, j-1)); return p; };
-  const argmax = (p, a, b) => { a = Math.max(1, Math.floor(a)); b = Math.min(p.length - 1, Math.ceil(b)); let m = a; for (let k = a; k <= b; k++) if (p[k] > p[m]) m = k; return m; };
-  const cp = colProfile(h * .3, h * .7), rp = rowProfile(w * .3, w * .7);
-  const oL = argmax(cp, 0, w * .35), oR = argmax(cp, w * .65, w - 1);
-  const oT = argmax(rp, 0, h * .35), oB = argmax(rp, h * .65, h - 1);
-  const cw = oR - oL, ch = oB - oT;
-  const cp2 = colProfile(oT + ch * .3, oT + ch * .7), rp2 = rowProfile(oL + cw * .3, oL + cw * .7);
-  // Innenkante = erste deutliche Kante von außen nach innen (nicht die stärkste – das wäre oft das Bildfenster)
-  const firstPeak = (p, from, to) => {
-    const dir = to > from ? 1 : -1, a = Math.round(from), b = Math.round(to);
-    let mx = 0; for (let k = a; k !== b; k += dir) if (k > 0 && k < p.length) mx = Math.max(mx, p[k]);
-    for (let k = a; k !== b; k += dir) {
-      if (k <= 0 || k >= p.length - 1) continue;
-      if (p[k] >= mx * .45 && p[k] >= p[k - 1] && p[k] >= p[k + 1]) return k;
-    }
-    return argmax(p, Math.min(a, b), Math.max(a, b));
+  return {
+    col(y0, y1){ const p = new Float32Array(w); for (let j = Math.max(0, y0|0); j < Math.min(h, y1|0); j++) for (let i = 1; i < w; i++) p[i] += diff(at(i, j), at(i-1, j)); return p; },
+    row(x0, x1){ const p = new Float32Array(h); for (let i = Math.max(0, x0|0); i < Math.min(w, x1|0); i++) for (let j = 1; j < h; j++) p[j] += diff(at(i, j), at(i, j-1)); return p; }
   };
-  const L = {
-    oL, oR, oT, oB,
-    iL: firstPeak(cp2, oL + cw * .025, oL + cw * .14), iR: firstPeak(cp2, oR - cw * .025, oR - cw * .14),
-    iT: firstPeak(rp2, oT + ch * .02, oT + ch * .12),  iB: firstPeak(rp2, oB - ch * .02, oB - ch * .12)
-  };
-  for (const k in L) L[k] = L[k] / s;
-  return L;
 }
-async function loadGradingImage(side, source){
-  let canvas;
-  if (source === "camera") {
-    canvas = toWorkCanvas(video, video.videoWidth, video.videoHeight);
-  } else {
-    const bmp = await createImageBitmap(source);
-    canvas = toWorkCanvas(bmp, bmp.width, bmp.height);
+const argmaxIn = (p, a, b) => { a = Math.max(1, Math.floor(Math.min(a, b))); b = Math.min(p.length - 1, Math.ceil(Math.max(a, b))); let m = a; for (let k = a; k <= b; k++) if (p[k] > p[m]) m = k; return m; };
+/** Erste deutliche Kante von "from" Richtung "to". */
+function firstPeak(p, from, to){
+  const dir = to > from ? 1 : -1, a = Math.round(from), b = Math.round(to);
+  let mx = 0; for (let k = a; k !== b; k += dir) if (k > 0 && k < p.length) mx = Math.max(mx, p[k]);
+  for (let k = a; k !== b; k += dir) {
+    if (k <= 0 || k >= p.length - 1) continue;
+    if (p[k] >= mx * .45 && p[k] >= p[k - 1] && p[k] >= p[k + 1]) return k;
   }
-  gr[side] = { img: canvas, lines: detectLines(canvas) };
-  if (side === "back") gr.backSkipped = false;
-  gr.sel = "oL";
-  renderGrading();
+  return argmaxIn(p, a, b);
 }
-$("#grPhoto").addEventListener("change", async e => {
-  const file = e.target.files?.[0]; e.target.value = ""; if (!file || !gr) return;
-  try { await loadGradingImage(GR_STEPS[gr.step][0], file); }
-  catch { toast("Das Foto konnte nicht geladen werden"); }
-});
+/** Außen- und Innenkanten im begradigten Bild, mit Sicherheitsprüfung über zwei Messbänder. */
+function detectInner(img, m, W, H){
+  const d = img.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, img.width, img.height).data;
+  const P = profiles(d, img.width, img.height);
+  const tol = W * .015;
+  const bandsV = [[m + H * .25, m + H * .45], [m + H * .55, m + H * .75]];
+  const bandsH = [[m + W * .25, m + W * .45], [m + W * .55, m + W * .75]];
+  const res = { oL: [], oR: [], iL: [], iR: [], oT: [], oB: [], iT: [], iB: [] };
+  for (const [a, b] of bandsV) {
+    const p = P.col(a, b);
+    const oL = argmaxIn(p, m - tol, m + tol), oR = argmaxIn(p, m + W - tol, m + W + tol);
+    const cw = oR - oL;
+    res.oL.push(oL); res.oR.push(oR);
+    res.iL.push(firstPeak(p, oL + cw * .02, oL + cw * .14));
+    res.iR.push(firstPeak(p, oR - cw * .02, oR - cw * .14));
+  }
+  for (const [a, b] of bandsH) {
+    const p = P.row(a, b);
+    const oT = argmaxIn(p, m - tol, m + tol), oB = argmaxIn(p, m + H - tol, m + H + tol);
+    const ch = oB - oT;
+    res.oT.push(oT); res.oB.push(oB);
+    res.iT.push(firstPeak(p, oT + ch * .015, oT + ch * .12));
+    res.iB.push(firstPeak(p, oB - ch * .015, oB - ch * .12));
+  }
+  const lines = {}; let conf = true;
+  for (const k in res) {
+    const [u, v] = res[k];
+    lines[k] = (u + v) / 2;
+    if (Math.abs(u - v) > W * .006) conf = false;
+  }
+  return { lines, conf };
+}
+/** Breite des Übergangs Karte/Hintergrund in Pixeln – groß = unscharf. */
+function edgeBlur(img, L){
+  const ctx = img.getContext("2d", { willReadFrequently: true }), widths = [];
+  for (let t = 0; t < 10; t++) {
+    const y = Math.round(L.oT + (L.oB - L.oT) * (.2 + t * .06)), x = Math.round(L.oL);
+    if (x - 14 < 0) continue;
+    const row = ctx.getImageData(x - 14, y, 29, 1).data, g = [];
+    for (let i = 0; i < 29; i++) g.push(row[i*4] * .3 + row[i*4+1] * .59 + row[i*4+2] * .11);
+    const lo = (g[0] + g[1] + g[2]) / 3, hi = (g[26] + g[27] + g[28]) / 3;
+    if (Math.abs(hi - lo) < 30) continue;
+    const f = v => (v - lo) / (hi - lo);
+    let a = -1, b = -1;
+    for (let i = 0; i < 29; i++) { const r = f(g[i]); if (a < 0 && r >= .2) a = i; if (b < 0 && r >= .8) { b = i; break; } }
+    if (a >= 0 && b >= 0) widths.push(b - a);
+  }
+  return widths.length ? median(widths) : null;
+}
+/** Anteil fast weißer Pixel (Spiegelung) im Karteninneren. */
+function glareShare(img, L){
+  const x = Math.round(L.iL), y = Math.round(L.iT), w = Math.round(L.iR - L.iL), h = Math.round(L.iB - L.iT);
+  if (w <= 0 || h <= 0) return 0;
+  const d = img.getContext("2d", { willReadFrequently: true }).getImageData(x, y, w, h).data;
+  let n = 0, g = 0;
+  for (let i = 0; i < d.length; i += 16) { n++; if (d[i] > 250 && d[i+1] > 250 && d[i+2] > 250) g++; }
+  return g / n * 100;
+}
+
+/** Ein Foto einer Seite auswerten: Karte finden, begradigen, Kanten messen, Qualität prüfen. */
+function analyseSide(canvas){
+  const det = detectQuad(canvas, canvas.width, canvas.height, 640);
+  if (!det.ok) {
+    return { img: canvas, lines: detectLines(canvas), warped: false, conf: false, mean: null,
+             issues: ["Kartenkanten nicht sicher erkannt – bitte die Linien prüfen."] };
+  }
+  const { img, m, W, H } = warpCard(canvas, det.quad);
+  const inner = detectInner(img, m, W, H);
+  const st = { img, lines: inner.lines, warped: true, conf: inner.conf, mean: det.mean, issues: [] };
+  if (det.tilt > 1.06) st.issues.push("Schräg fotografiert – die App hat das Foto begradigt, die Messung ist etwas ungenauer.");
+  const blur = edgeBlur(img, st.lines);
+  if (blur != null && blur > 7) { st.issues.push("Das Foto wirkt unscharf."); st.conf = false; }
+  if (glareShare(img, st.lines) > 1.5) st.issues.push("Lichtspiegelung erkannt – Kanten und Oberfläche sind darauf schwer zu beurteilen.");
+  if (!centering(st.lines)) st.conf = false;
+  if (!inner.conf) st.issues.push("Innenkante nicht eindeutig – bitte die Linien prüfen.");
+  return st;
+}
 
 /* Zentrierung */
 function centering(L){
@@ -1210,35 +1405,213 @@ function centering(L){
 }
 const ratioText = p => { const a = Math.round(p); return `${a}/${100 - a}`; };
 
-/* Weiße Stellen an den Kanten der Rückseite (Hinweis) */
-function whitening(canvas, L){
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  const cw = L.oR - L.oL, ch = L.oB - L.oT;
-  const band = Math.max(2, Math.round(cw * .014)), inset = Math.max(1, Math.round(cw * .004)), skip = cw * .08;
-  const regions = {
-    oben:   [L.oL + skip, L.oT + inset, cw - 2 * skip, band],
-    unten:  [L.oL + skip, L.oB - inset - band, cw - 2 * skip, band],
-    links:  [L.oL + inset, L.oT + skip, band, ch - 2 * skip],
-    rechts: [L.oR - inset - band, L.oT + skip, band, ch - 2 * skip]
-  };
-  const out = {};
-  for (const [name, [x, y, w, h]] of Object.entries(regions)) {
-    const X = Math.max(0, Math.round(x)), Y = Math.max(0, Math.round(y));
-    const Wd = Math.max(1, Math.min(canvas.width - X, Math.round(w))), Hd = Math.max(1, Math.min(canvas.height - Y, Math.round(h)));
-    const px = ctx.getImageData(X, Y, Wd, Hd).data;
-    let white = 0, n = 0;
-    for (let i = 0; i < px.length; i += 4) {
-      const r = px[i], g = px[i+1], b = px[i+2], mn = Math.min(r, g, b), mx = Math.max(r, g, b);
-      n++; if (mn > 170 && mx - mn < 45) white++;
-    }
-    out[name] = white / n * 100;
-  }
-  return out;
+/* Fallback ohne Begradigung: Linien im Originalfoto vorschlagen */
+function detectLines(canvas){
+  const W = canvas.width, H = canvas.height, s = Math.min(1, 600 / Math.max(W, H));
+  const w = Math.round(W * s), h = Math.round(H * s);
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(canvas, 0, 0, w, h);
+  const P = profiles(x.getImageData(0, 0, w, h).data, w, h);
+  const cp = P.col(h * .3, h * .7), rp = P.row(w * .3, w * .7);
+  const oL = argmaxIn(cp, 0, w * .35), oR = argmaxIn(cp, w * .65, w - 1);
+  const oT = argmaxIn(rp, 0, h * .35), oB = argmaxIn(rp, h * .65, h - 1);
+  const cw = oR - oL, ch = oB - oT;
+  const cp2 = P.col(oT + ch * .3, oT + ch * .7), rp2 = P.row(oL + cw * .3, oL + cw * .7);
+  const L = { oL, oR, oT, oB,
+    iL: firstPeak(cp2, oL + cw * .025, oL + cw * .14), iR: firstPeak(cp2, oR - cw * .025, oR - cw * .14),
+    iT: firstPeak(rp2, oT + ch * .02, oT + ch * .12),  iB: firstPeak(rp2, oB - ch * .02, oB - ch * .12) };
+  for (const k in L) L[k] = L[k] / s;
+  return L;
 }
 
-/* Messansicht mit verschiebbaren Linien */
+/* ===== Weiße Stellen an Ecken und Kanten ===== */
+function whiteZones(st){
+  if (!st?.warped) return null;
+  const L = st.lines, W = L.oR - L.oL, H = L.oB - L.oT, img = st.img;
+  const d = img.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, img.width, img.height).data, iw = img.width;
+  const px = (x, y) => (Math.round(y) * iw + Math.round(x)) * 4;
+  const isWhite = k => { const mn = Math.min(d[k], d[k+1], d[k+2]), mx = Math.max(d[k], d[k+1], d[k+2]); return mn > 170 && mx - mn < 45; };
+  // Heller, grauer Rand (z. B. Silberrand) lässt sich nicht von Abrieb unterscheiden -> keine Auswertung
+  let wb = 0, nb = 0;
+  for (let y = L.oT + H * .3; y < L.oB - H * .3; y += 4) { const k = px((L.oL + L.iL) / 2, y); nb++; if (isWhite(k)) wb++; }
+  if (wb / nb > .3) return { skipped: true };
+  const r = W * .056, inset = W * .004, band = W * .013;
+  const zone = (test, x0, y0, x1, y1) => {
+    let n = 0, wt = 0;
+    for (let y = Math.max(0, y0); y < Math.min(img.height, y1); y++) for (let x = Math.max(0, x0); x < Math.min(iw, x1); x++) {
+      if (!test(x, y)) continue; n++; if (isWhite(px(x, y))) wt++;
+    }
+    return n ? wt / n * 100 : 0;
+  };
+  const yes = () => true;
+  const edges = {
+    oben:   zone(yes, L.oL + r * 1.3, L.oT + inset, L.oR - r * 1.3, L.oT + inset + band),
+    unten:  zone(yes, L.oL + r * 1.3, L.oB - inset - band, L.oR - r * 1.3, L.oB - inset),
+    links:  zone(yes, L.oL + inset, L.oT + r * 1.3, L.oL + inset + band, L.oB - r * 1.3),
+    rechts: zone(yes, L.oR - inset - band, L.oT + r * 1.3, L.oR - inset, L.oB - r * 1.3)
+  };
+  const arc = (cx, cy) => (x, y) => { const dd = Math.hypot(x - cx, y - cy); return dd >= r - inset - band && dd <= r - inset; };
+  const corners = {
+    "oben links":   zone(arc(L.oL + r, L.oT + r), L.oL, L.oT, L.oL + r, L.oT + r),
+    "oben rechts":  zone(arc(L.oR - r, L.oT + r), L.oR - r, L.oT, L.oR, L.oT + r),
+    "unten links":  zone(arc(L.oL + r, L.oB - r), L.oL, L.oB - r, L.oL + r, L.oB),
+    "unten rechts": zone(arc(L.oR - r, L.oB - r), L.oR - r, L.oB - r, L.oR, L.oB)
+  };
+  return { edges, corners };
+}
+function rateZones(vals, kind){
+  const v = Object.values(vals), worst = Math.max(...v);
+  const hit = v.filter(x => x > (kind === "corners" ? .8 : .4)).length;
+  if (kind === "corners") {
+    if (worst > 12) return 5; if (worst > 6 || hit >= 4) return 7; if (worst > 2.5 || hit >= 2) return 8; if (hit === 1) return 9; return 10;
+  }
+  if (worst > 8) return 5; if (worst > 3 || hit >= 3) return 7; if (worst > 1 || hit >= 2) return 8; if (hit === 1) return 9; return 10;
+}
+function computeAuto(){
+  const res = { corners: null, edges: null, notes: { corners: [], edges: [] }, sides: [] };
+  for (const side of ["back", "front"]) {
+    const z = whiteZones(gr[side]); if (!z || z.skipped) continue;
+    res.sides.push(side);
+    for (const kind of ["corners", "edges"]) {
+      const g = rateZones(z[kind], kind);
+      res[kind] = res[kind] == null ? g : Math.min(res[kind], g);
+      for (const [name, val] of Object.entries(z[kind]))
+        if (val > (kind === "corners" ? .8 : .4)) res.notes[kind].push(`${side === "back" ? "hinten" : "vorne"} ${name} (${val.toFixed(1).replace(".", ",")} %)`);
+    }
+  }
+  return res;
+}
+
+/* ===== Karte aus der Vorderseite erkennen ===== */
+async function identifyFromFront(st){
+  if (!st?.warped || gr?.ctx) return;
+  const L = st.lines, H = L.oB - L.oT, my = gr;
+  my.idStatus = "Karte wird erkannt …";
+  try {
+    const strip = prepCanvas(st.img, L.oL, L.oT + H * .87, L.oR - L.oL, H * .125);
+    const p = parseNumber(await ocr(strip));
+    if (gr !== my) return;
+    if (!p || !p.total) { my.idStatus = "Kartennummer nicht lesbar."; return renderIdBlock(); }
+    const cands = await identify(p, scanLang);
+    if (gr !== my) return;
+    if (cands.length === 1) { my.ctx = { cardId: cands[0].card.id, lg: scanLang, name: cands[0].card.name, setName: cands[0].setName, num: p.display }; my.idStatus = ""; }
+    else if (cands.length > 1) { my.cands = cands.map(c => ({ ...c, lg: scanLang })); my.idStatus = ""; }
+    else my.idStatus = `Keine ${LANGS[scanLang].toLowerCase()}e Karte mit ${p.display} gefunden.`;
+  } catch { if (gr === my) my.idStatus = "Karte konnte nicht erkannt werden."; }
+  renderIdBlock();
+}
+function idBlockHtml(){
+  if (!gr) return "";
+  if (gr.ctx) return `<div class="hint ok"><strong>Karte:</strong> ${esc(gr.ctx.name)}${gr.ctx.setName ? ` · ${esc(gr.ctx.setName)}` : ""}${gr.ctx.num ? ` · <span class="num">${esc(gr.ctx.num)}</span>` : ""} ${badge(gr.ctx.lg)}</div>`;
+  if (gr.cands?.length) return `<div class="hint"><strong>Welche Karte ist es?</strong><div class="cond-chips" style="margin-top:8px">${gr.cands.map((c, i) => `<button class="chip" data-pick="${i}">${esc(c.card.name)} · ${esc(c.setName)}</button>`).join("")}</div></div>`;
+  if (gr.idStatus) return `<div class="hint">${esc(gr.idStatus)}${gr.idStatus.endsWith("…") ? "" : " Öffne die Karte über Suchen oder Sammlung und starte dort den Grading-Check, um das Ergebnis zu speichern."}</div>`;
+  return "";
+}
+function renderIdBlock(){ const b = $("#grId"); if (b) b.innerHTML = idBlockHtml(); updateNext(); }
+
+/* ===== Live-Kamera mit automatischer Aufnahme ===== */
+let gStream = null, gLoop = false, gHist = [], gPauseUntil = 0;
+async function startGradeCam(){
+  if (gStream) { attachGradeCam(); return; }
+  try {
+    gStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+    store.set("ks.camOn", true);
+    attachGradeCam();
+  } catch { gStream = null; setGradeMsg("Kein Kamerazugriff. Nutze „Foto wählen“.", true); }
+}
+function attachGradeCam(){
+  const v = $("#grVideo"); if (!v || !gStream) return;
+  v.srcObject = gStream; v.hidden = false; v.play().catch(() => {});
+  $("#grCamStart")?.setAttribute("hidden", "");
+  if (!gLoop) { gLoop = true; gradeCamLoop(); }
+}
+function stopGradeCam(){
+  gLoop = false;
+  if (gStream) gStream.getTracks().forEach(t => t.stop());
+  gStream = null;
+}
+function setGradeMsg(text, warn = false){
+  const el = $("#grCamMsg"); if (!el) return;
+  el.textContent = text; el.classList.toggle("warn", warn);
+}
+async function gradeCamLoop(){
+  while (gLoop && gr && GR_STEPS[gr.step][0] === "capture" && gr.capSide) {
+    const v = $("#grVideo");
+    if (v && v.readyState >= 2 && !gr.processing && !document.hidden && gradingOpen()) {
+      if (Date.now() < gPauseUntil) setGradeMsg("Jetzt die Karte umdrehen …");
+      else {
+        const det = detectQuad(v, v.videoWidth, v.videoHeight, 420);
+        drawGradeOverlay(v, det);
+        handleLiveDet(det, v);
+      }
+    }
+    await sleep(200);
+  }
+  gLoop = false;
+}
+function drawGradeOverlay(v, det){
+  const cv = $("#grOverlay"); if (!cv) return;
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  const ctx = cv.getContext("2d"); ctx.clearRect(0, 0, cv.width, cv.height);
+  if (!det.ok) return;
+  const scale = Math.max(r.width / v.videoWidth, r.height / v.videoHeight);
+  const ox = (v.videoWidth * scale - r.width) / 2, oy = (v.videoHeight * scale - r.height) / 2;
+  ctx.strokeStyle = gHist.length >= 2 ? "#3ccf7f" : "#ffffff"; ctx.lineWidth = 3 * dpr;
+  ctx.beginPath();
+  det.quad.forEach((p, i) => { const X = (p.x * scale - ox) * dpr, Y = (p.y * scale - oy) * dpr; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+  ctx.closePath(); ctx.stroke();
+}
+function handleLiveDet(det, v){
+  const side = gr.capSide;
+  if (!det.ok) { gHist = []; setGradeMsg(det.reason); return; }
+  if (det.area < .18) { gHist = []; setGradeMsg("Geh näher ran – die Karte soll das Bild gut ausfüllen."); return; }
+  if (side === "back" && gr.front?.mean) {
+    const dm = det.mean.reduce((s, c, i) => s + Math.abs(c - gr.front.mean[i]), 0);
+    if (dm < 45) { gHist = []; setGradeMsg("Jetzt die Karte umdrehen …"); return; }
+  }
+  gHist.push(det); if (gHist.length > 8) gHist.shift();
+  const recent = gHist.slice(-3);
+  const diag = Math.hypot(v.videoWidth, v.videoHeight);
+  const stable = recent.length === 3 && recent.every(a => a.quad.every((p, i) => Math.hypot(p.x - recent[2].quad[i].x, p.y - recent[2].quad[i].y) < diag * .01));
+  const maxSharp = Math.max(...gHist.map(g => g.sharp));
+  const sharpOk = det.sharp >= maxSharp * .85;
+  if (stable && sharpOk) captureSide(side, "video");
+  else setGradeMsg(`${SIDE_NAME[side]}: Halte still …`);
+}
+async function captureSide(side, source){
+  if (!gr || gr.processing) return;
+  const my = gr;
+  my.processing = true; setGradeMsg("Wird ausgewertet …");
+  try {
+    let canvas;
+    if (source === "video") { const v = $("#grVideo"); canvas = toWorkCanvas(v, v.videoWidth, v.videoHeight, 1920); }
+    else { const bmp = await createImageBitmap(source); canvas = toWorkCanvas(bmp, bmp.width, bmp.height, 1800); }
+    await sleep(30);
+    const st = analyseSide(canvas);
+    if (gr !== my) return;
+    my[side] = st; my.auto = null;
+    if (navigator.vibrate) navigator.vibrate(40);
+    gHist = [];
+    if (side === "front") {
+      my.capSide = my.back ? null : "back"; gPauseUntil = Date.now() + 1800;
+      identifyFromFront(st);
+    } else { my.capSide = null; my.backSkipped = false; }
+  } catch { toast("Das Foto konnte nicht ausgewertet werden"); }
+  my.processing = false;
+  if (gr !== my) return;
+  if (!my.capSide) { stopGradeCam(); my.step = 1; my.editSide = ["front", "back"].find(s => my[s] && !my[s].conf) || null; renderGrading(); }
+  else renderGrading();
+}
+$("#grPhoto").addEventListener("change", e => {
+  const file = e.target.files?.[0]; e.target.value = ""; if (!file || !gr) return;
+  captureSide(gr.capSide || "front", file);
+});
+
+/* ===== Messansicht mit verschiebbaren Linien ===== */
 function drawMeasure(){
-  const side = GR_STEPS[gr.step][0], st = gr[side], cv = $("#measureCanvas"); if (!st || !cv) return;
+  if (!gr?.editSide) return;
+  const st = gr[gr.editSide], cv = $("#measureCanvas"); if (!st || !cv) return;
   const img = st.img, box = cv.parentElement.clientWidth || 340;
   const maxH = Math.max(260, window.innerHeight * .5);
   let dw = box, dh = dw * img.height / img.width;
@@ -1246,25 +1619,9 @@ function drawMeasure(){
   const dpr = window.devicePixelRatio || 1;
   cv.style.width = dw + "px"; cv.style.height = dh + "px";
   cv.width = Math.round(dw * dpr); cv.height = Math.round(dh * dpr);
-  const k = cv.width / img.width, L = st.lines, ctx = cv.getContext("2d");
+  const k = cv.width / img.width, ctx = cv.getContext("2d");
   ctx.drawImage(img, 0, 0, cv.width, cv.height);
-  // Rand zwischen Außen- und Innenlinie leicht einfärben
-  ctx.fillStyle = "rgba(242,184,31,.18)";
-  ctx.fillRect(L.oL * k, L.oT * k, (L.iL - L.oL) * k, (L.oB - L.oT) * k);
-  ctx.fillRect(L.iR * k, L.oT * k, (L.oR - L.iR) * k, (L.oB - L.oT) * k);
-  ctx.fillRect(L.iL * k, L.oT * k, (L.iR - L.iL) * k, (L.iT - L.oT) * k);
-  ctx.fillRect(L.iL * k, L.iB * k, (L.iR - L.iL) * k, (L.oB - L.iB) * k);
-  for (const [key, , dir] of LINE_DEFS) {
-    const outer = key[0] === "o", sel = key === gr.sel, v = L[key] * k;
-    ctx.strokeStyle = outer ? "#ff4d55" : "#f5c33b";
-    ctx.lineWidth = (sel ? 3 : 1.5) * dpr;
-    ctx.setLineDash(sel ? [] : [6 * dpr, 4 * dpr]);
-    ctx.beginPath();
-    if (dir === "v") { ctx.moveTo(v, 0); ctx.lineTo(v, cv.height); } else { ctx.moveTo(0, v); ctx.lineTo(cv.width, v); }
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
-  // Lupe beim Ziehen
+  drawLines(ctx, st.lines, k, dpr, gr.sel);
   if (gr.drag && gr.dragPt) {
     const R = 62 * dpr, zoom = 3, { x, y } = gr.dragPt;
     const cx = x * k < cv.width / 2 ? cv.width - R - 10 * dpr : R + 10 * dpr, cy = R + 10 * dpr;
@@ -1277,19 +1634,36 @@ function drawMeasure(){
   }
   updateMeasureOut();
 }
+function drawLines(ctx, L, k, dpr, sel){
+  ctx.fillStyle = "rgba(242,184,31,.18)";
+  ctx.fillRect(L.oL * k, L.oT * k, (L.iL - L.oL) * k, (L.oB - L.oT) * k);
+  ctx.fillRect(L.iR * k, L.oT * k, (L.oR - L.iR) * k, (L.oB - L.oT) * k);
+  ctx.fillRect(L.iL * k, L.oT * k, (L.iR - L.iL) * k, (L.iT - L.oT) * k);
+  ctx.fillRect(L.iL * k, L.iB * k, (L.iR - L.iL) * k, (L.oB - L.iB) * k);
+  for (const [key, , dir] of LINE_DEFS) {
+    const isSel = key === sel, v = L[key] * k;
+    ctx.strokeStyle = key[0] === "o" ? "#ff4d55" : "#f5c33b";
+    ctx.lineWidth = (isSel ? 3 : 1.5) * dpr;
+    ctx.setLineDash(isSel ? [] : [6 * dpr, 4 * dpr]);
+    ctx.beginPath();
+    if (dir === "v") { ctx.moveTo(v, 0); ctx.lineTo(v, ctx.canvas.height); } else { ctx.moveTo(0, v); ctx.lineTo(ctx.canvas.width, v); }
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
 function updateMeasureOut(){
-  const side = GR_STEPS[gr.step][0], c = centering(gr[side]?.lines), out = $("#measureOut"); if (!out) return;
-  if (!c) { out.innerHTML = `<div class="hint">Die Linien liegen nicht richtig: Jede Innenlinie muss innerhalb ihrer Außenlinie liegen.</div>`; return; }
+  const side = gr.editSide, c = centering(gr[side]?.lines), out = $("#measureOut"); if (!out) return;
+  if (!c) { out.innerHTML = `<div class="hint">Jede gelbe Innenlinie muss innerhalb ihrer roten Außenlinie liegen.</div>`; return; }
   const cap = capFor(c.worst, side === "front" ? FRONT_CAPS : BACK_CAPS);
   out.innerHTML = `<div class="ratio-grid">
       <div class="ratio"><span class="small">Links / Rechts</span><b class="num">${ratioText(c.lr)}</b></div>
       <div class="ratio"><span class="small">Oben / Unten</span><b class="num">${ratioText(c.tb)}</b></div>
     </div>
-    <div class="hint ${cap === 10 ? "ok" : ""}">Zentrierung ${side === "front" ? "vorne" : "hinten"} erlaubt bis <strong>PSA ${cap}</strong>${cap < 10 ? ` (PSA 10 braucht ${side === "front" ? "55/45" : "75/25"} oder besser)` : ""}.</div>`;
-  $("#nudgeLabel").textContent = LINE_DEFS.find(d => d[0] === gr.sel)[1];
+    <div class="hint ${cap === 10 ? "ok" : ""}">Erlaubt bis <strong>PSA ${cap}</strong>${cap < 10 ? ` (PSA 10 braucht ${side === "front" ? "55/45" : "75/25"} oder besser)` : ""}.</div>`;
+  const lbl = $("#nudgeLabel"); if (lbl) lbl.textContent = LINE_DEFS.find(d => d[0] === gr.sel)[1];
 }
 function bindMeasure(){
-  const cv = $("#measureCanvas"), side = GR_STEPS[gr.step][0], st = gr[side];
+  const cv = $("#measureCanvas"), st = gr[gr.editSide]; if (!cv || !st) return;
   const toImg = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * st.img.width, y: (e.clientY - r.top) / r.height * st.img.height, s: r.width / st.img.width }; };
   cv.addEventListener("pointerdown", e => {
     const p = toImg(e); let best = null, bd = Infinity;
@@ -1313,17 +1687,26 @@ function renderLineChips(){
   box.innerHTML = LINE_DEFS.map(([k, l]) => `<button class="chip" data-line="${k}" aria-pressed="${k === gr.sel}">${l}</button>`).join("");
 }
 
-/* Ausschnitte für Ecken und Kanten */
+/* Vorschaubilder und Ausschnitte */
+function drawThumbs(){
+  for (const cv of $$("canvas[data-thumb]")) {
+    const st = gr?.[cv.dataset.thumb]; if (!st) continue;
+    const img = st.img, w = 300, h = Math.round(w * img.height / img.width);
+    cv.width = w; cv.height = h;
+    const ctx = cv.getContext("2d"); ctx.drawImage(img, 0, 0, w, h);
+    if (cv.dataset.lines) drawLines(ctx, st.lines, w / img.width, 1, null);
+  }
+}
 function drawCrops(){
   for (const cv of $$("canvas[data-crop]")) {
     const [side, where] = cv.dataset.crop.split(":"), st = gr[side]; if (!st) continue;
     const L = st.lines, cw = L.oR - L.oL, ch = L.oB - L.oT, img = st.img, ctx = cv.getContext("2d");
-    if (where.length === 2) {          // Ecke: tl, tr, bl, br
+    if (where.length === 2) {
       const size = cw * .16, pad = cw * .02;
       const sx = where[1] === "l" ? L.oL - pad : L.oR - size + pad, sy = where[0] === "t" ? L.oT - pad : L.oB - size + pad;
-      cv.width = 360; cv.height = 360;
-      ctx.drawImage(img, sx, sy, size, size, 0, 0, 360, 360);
-    } else {                           // Kante: top, bottom, left, right (als waagerechter Streifen)
+      cv.width = 300; cv.height = 300;
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, 300, 300);
+    } else {
       const t = cw * .05;
       if (where === "top" || where === "bottom") {
         const sy = where === "top" ? L.oT - t * .3 : L.oB - t * .7;
@@ -1340,19 +1723,17 @@ function drawCrops(){
   }
 }
 
-/* Gesamteinschätzung */
+/* ===== Gesamteinschätzung ===== */
 function gradeEstimate(){
   const f = centering(gr.front?.lines), b = centering(gr.back?.lines);
   const capF = f ? capFor(f.worst, FRONT_CAPS) : 10, capB = b ? capFor(b.worst, BACK_CAPS) : 10;
   const conds = ["corners", "edges", "surface"].map(k => gr.cond[k] ?? 10);
   let capC = Math.min(...conds);
-  // PSA 9 erlaubt nur einen kleinen Makel insgesamt
-  if (capC === 9 && conds.filter(v => v === 9).length >= 2) capC = 8;
+  if (capC === 9 && conds.filter(v => v === 9).length >= 2) capC = 8;   // PSA 9 erlaubt nur einen kleinen Makel
   const top = Math.min(capF, capB, capC);
   let low = Math.max(1, top - 1);
-  // Messungenauigkeit eines Handyfotos: knapp an einer Grenze -> Spanne erweitern
-  if (f) low = Math.min(low, capFor(f.worst + 2, FRONT_CAPS));
-  return { top, low, f, b, capF, capB, capC, conds };
+  if (f) low = Math.min(low, capFor(f.worst + 2, FRONT_CAPS));          // Messungenauigkeit Handyfoto
+  return { top, low, f, b, capF, capB, conds };
 }
 function renderResult(){
   const e = gradeEstimate();
@@ -1360,9 +1741,9 @@ function renderResult(){
   const row = (name, val, cap) => `<div class="factor ${cap === e.top && e.top < 10 ? "limit" : ""}"><strong>${name}</strong><span>${val} <span class="grade-tag">max. ${cap}</span></span></div>`;
   const condName = (k, v) => COND[k].opts.find(o => o[0] === v)?.[1] || "–";
   const limits = [];
-  if (e.capF === e.top && e.top < 10) limits.push("die Zentrierung der Vorderseite");
-  if (e.capB === e.top && e.top < 10) limits.push("die Zentrierung der Rückseite");
-  ["corners", "edges", "surface"].forEach((k, i) => { if (e.conds[i] <= e.top && e.top < 10) limits.push(COND[k].title === "Oberfläche" ? "die Oberfläche" : "die " + COND[k].title); });
+  if (e.capF === e.top && e.top < 10) limits.push("die Zentrierung vorne");
+  if (e.capB === e.top && e.top < 10) limits.push("die Zentrierung hinten");
+  ["corners", "edges", "surface"].forEach((k, i) => { if (e.conds[i] <= e.top && e.top < 10) limits.push("die " + COND[k].title); });
   return `
     <div class="grade-hero">
       <div class="eyebrow">Ersteinschätzung</div>
@@ -1370,112 +1751,157 @@ function renderResult(){
       <div><strong>${GRADE_NAMES[e.top]}</strong></div>
       <div class="small">${e.top === 10 ? "Alles spricht für eine Top-Note. Mikrokratzer sieht ein Handyfoto aber nicht – eine 9 ist genauso möglich." : limits.length ? `Begrenzt durch ${[...new Set(limits)].join(" und ")}.` : ""}</div>
     </div>
+    <div id="grId">${idBlockHtml()}</div>
     <div class="factors">
       ${e.f ? row("Zentrierung vorne", `<span class="num">${ratioText(e.f.lr)} · ${ratioText(e.f.tb)}</span>`, e.capF) : ""}
       ${e.b ? row("Zentrierung hinten", `<span class="num">${ratioText(e.b.lr)} · ${ratioText(e.b.tb)}</span>`, e.capB) : `<div class="factor"><strong>Zentrierung hinten</strong><span class="small">nicht gemessen</span></div>`}
-      ${row("Ecken", condName("corners", e.conds[0]), e.conds[0])}
-      ${row("Kanten", condName("edges", e.conds[1]), e.conds[1])}
+      ${row("Ecken", condName("corners", e.conds[0]) + (gr.condUser.corners ? "" : gr.auto?.corners != null ? " · auto" : ""), e.conds[0])}
+      ${row("Kanten", condName("edges", e.conds[1]) + (gr.condUser.edges ? "" : gr.auto?.edges != null ? " · auto" : ""), e.conds[1])}
       ${row("Oberfläche", condName("surface", e.conds[2]), e.conds[2])}
     </div>
-    <p class="note">Orientiert an den PSA-Kriterien. Das ist eine Ersteinschätzung – die echte Note vergibt nur der Grader. Ein Fleck, eine Delle oder ein falscher Schnitt kann sie jederzeit senken.</p>
-    ${gr.ctx ? "" : `<p class="note">Tipp: Öffne eine Karte und tippe dort auf „Grading-Check starten“ – dann wird die Einschätzung bei der Karte gespeichert.</p>`}`;
+    <p class="note">Orientiert an den PSA-Kriterien. Das ist eine Ersteinschätzung – die echte Note vergibt nur der Grader.</p>`;
 }
 
-/* Schritte anzeigen */
+/* ===== Schritte ===== */
+function updateNext(){
+  if (!gr) return;
+  const key = GR_STEPS[gr.step][0], next = $("#grNext");
+  next.disabled = false;
+  if (key === "capture") { next.textContent = gr.front && gr.capSide === "back" ? "Ohne Rückseite weiter" : "Weiter"; next.disabled = !gr.front || gr.processing; }
+  else if (key === "centering") { next.textContent = gr.editSide ? "Linien übernehmen" : "Weiter"; }
+  else if (key === "condition") { next.textContent = "Weiter"; next.disabled = gr.cond.surface == null; }
+  else next.textContent = gr.ctx ? `Bei ${gr.ctx.name} speichern` : "Fertig";
+}
+function sideSummary(side){
+  const st = gr[side];
+  if (!st) return side === "back" ? `<div class="side-card"><div></div><div><strong>Rückseite</strong><div class="small">Nicht fotografiert – Zentrierung hinten wird nicht berücksichtigt.</div></div></div>` : "";
+  const c = centering(st.lines), cap = c ? capFor(c.worst, side === "front" ? FRONT_CAPS : BACK_CAPS) : null;
+  return `<div class="side-card">
+    <canvas data-thumb="${side}" data-lines="1" aria-label="${SIDE_NAME[side]} mit Messlinien"></canvas>
+    <div style="display:grid;gap:6px;min-width:0">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><strong>${SIDE_NAME[side]}</strong>
+        <span class="badge ${st.conf ? "good" : "check"}">${st.conf ? "AUTOMATISCH" : "BITTE PRÜFEN"}</span></div>
+      ${c ? `<div class="num" style="font-size:20px;font-weight:700">${ratioText(c.lr)} · ${ratioText(c.tb)}</div><div class="small">links/rechts · oben/unten → bis <strong>PSA ${cap}</strong></div>` : `<div class="small">Linien noch nicht gültig.</div>`}
+      ${st.issues.map(i => `<div class="issue">${esc(i)}</div>`).join("")}
+      <button class="btn" data-edit="${side}">${gr.editSide === side ? "Schließen" : "Linien anpassen"}</button>
+    </div>
+  </div>`;
+}
+function condBlock(k, crops){
+  const v = gr.cond[k], auto = gr.auto?.[k], notes = gr.auto?.notes?.[k] || [];
+  const autoLine = k === "surface" ? `<div class="small">Halte die Karte schräg unter eine Lampe und kipp sie langsam. So siehst du Kratzer, Drucklinien und Dellen – das kann ein Foto nicht.</div>`
+    : auto != null ? `<div class="hint ${auto === 10 ? "ok" : ""}"><strong>Automatisch:</strong> ${notes.length ? `Helle Stellen ${notes.slice(0, 4).join(", ")}${notes.length > 4 ? " …" : ""}.` : "Keine hellen Stellen gefunden."} Lichtspiegelungen können das Ergebnis verfälschen.</div>`
+    : `<div class="small">Keine automatische Bewertung möglich${gr.auto?.sides?.length === 0 ? " (heller Kartenrand oder Foto nicht begradigt)" : ""}. Schau dir die Vergrößerungen an.</div>`;
+  const sel = COND[k].opts.find(o => o[0] === v);
+  return `<div class="cond-block">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h3 style="font-size:20px">${COND[k].title}</h3>${v != null ? `<span class="grade-tag">max. ${v}</span>` : ""}</div>
+    ${crops}${autoLine}
+    <div class="cond-chips">${COND[k].opts.map(([val, t]) => `<button class="chip" data-cond="${k}" data-val="${val}" aria-pressed="${v === val}">${t}</button>`).join("")}</div>
+    ${sel ? `<div class="small">${sel[2]}</div>` : ""}
+  </div>`;
+}
 function renderGrading(){
   const [key, title] = GR_STEPS[gr.step];
   $("#grStep").textContent = `Schritt ${gr.step + 1} von ${GR_STEPS.length}${gr.ctx ? " · " + gr.ctx.name : ""}`;
   $("#grTitle").textContent = title;
   $("#grSteps").innerHTML = GR_STEPS.map((_, i) => `<i class="${i <= gr.step ? "on" : ""}"></i>`).join("");
-  $("#grBack").textContent = "Zurück";
-  $("#grBack").disabled = gr.step === 0;
+  $("#grBack").textContent = "Zurück"; $("#grBack").disabled = gr.step === 0;
   $("#grClose").hidden = gr.step === 0 && !gr.front && !gr.ctx;
-  const next = $("#grNext"); next.disabled = false;
   let html = "";
 
-  if (key === "front" || key === "back") {
-    const st = gr[key];
-    if (!st) {
-      html = `<div class="photo-pick">
-          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 8h6M9 12h6"/></svg>
-          <strong>${key === "front" ? "Foto der Vorderseite" : "Foto der Rückseite"}</strong>
-          <p>Karte ohne Hülle auf einen <strong>dunklen, einfarbigen</strong> Untergrund legen. Senkrecht von oben fotografieren, ohne Blitz und ohne Spiegelung. Die Karte soll das Bild fast ausfüllen.</p>
-          <label class="btn primary" for="grPhoto">Foto aufnehmen oder wählen</label>
-          ${stream ? `<button class="btn" data-grcam="1">Aktuelles Kamerabild nutzen</button>` : ""}
+  if (key === "capture") {
+    const side = gr.capSide;
+    html = `${side ? `<div class="gcam">
+        <video id="grVideo" playsinline muted autoplay hidden></video>
+        <canvas id="grOverlay"></canvas>
+        <div class="gcam-start" id="grCamStart">
+          <p>Leg die Karte ohne Hülle auf einen <strong>dunklen, einfarbigen</strong> Untergrund und halte das iPhone ruhig darüber. Die App löst automatisch aus – erst vorne, dann hinten.</p>
+          <button class="btn primary" data-camstart="1">Kamera starten</button>
         </div>
-        ${key === "back" ? `<p class="note">Die Rückseite ist optional, verbessert aber die Einschätzung von Zentrierung und Kanten.</p>` : ""}`;
-      next.textContent = key === "back" ? "Überspringen" : "Weiter";
-      next.disabled = key === "front";
-    } else {
-      html = `<p class="small" style="margin:0">Rot = Kartenrand, Gelb = Innenkante des Rahmens. Die App hat die Linien vorgeschlagen – zieh sie mit dem Finger genau auf die Kanten. Die Lupe hilft dabei.</p>
+        <div class="gstatus" id="grCamMsg">${SIDE_NAME[side]}: Karte ins Bild halten</div>
+      </div>
+      <div class="row-btns">
+        <button class="btn" data-shoot="1">Jetzt aufnehmen</button>
+        <label class="btn" for="grPhoto">Foto wählen</label>
+      </div>` : ""}
+      <div class="thumbs">${["front", "back"].map(s => `<div class="thumb">
+          <div class="eyebrow">${SIDE_NAME[s]}</div>
+          ${gr[s] ? `<canvas data-thumb="${s}"></canvas>${gr[s].issues.slice(0, 1).map(i => `<div class="issue">${esc(i)}</div>`).join("")}<button class="chip" data-retake="${s}">Neu aufnehmen</button>`
+                  : `<div class="thumb-empty">${gr.capSide === s ? "wird als Nächstes aufgenommen" : s === "back" ? "optional" : ""}</div>`}
+        </div>`).join("")}</div>
+      ${gr.front && gr.capSide === "back" ? `<p class="note">Rückseite verbessert Zentrierung und Kanten-Check. Ohne sie geht es über „Ohne Rückseite weiter“.</p>` : ""}`;
+  } else if (key === "centering") {
+    html = `${sideSummary("front")}${sideSummary("back")}
+      ${gr.editSide ? `<div class="cond-block">
+        <div class="small">${SIDE_NAME[gr.editSide]}: Rot = Kartenrand, Gelb = Innenkante des Rahmens. Zieh die Linien mit dem Finger auf die Kanten, die Lupe hilft.</div>
         <div class="measure"><canvas id="measureCanvas" aria-label="Kartenfoto mit Messlinien"></canvas></div>
         <div class="line-chips" id="lineChips"></div>
         <div class="nudge"><button class="btn" data-nudge="-1" aria-label="Linie zurück">−</button><span id="nudgeLabel"></span><button class="btn" data-nudge="1" aria-label="Linie vor">+</button></div>
         <div id="measureOut"></div>
-        <button class="btn" data-regrphoto="1">Anderes Foto</button>`;
-      next.textContent = "Weiter";
+      </div>` : ""}`;
+  } else if (key === "condition") {
+    if (!gr.auto) {
+      gr.auto = computeAuto();
+      for (const k of ["corners", "edges"]) if (!gr.condUser[k] && gr.auto[k] != null) gr.cond[k] = gr.auto[k];
     }
-  } else if (key === "corners") {
     const sides = ["front", "back"].filter(s => gr[s]);
-    html = `<p class="small" style="margin:0">${COND.corners.intro}</p>
-      ${sides.map(s => `<div class="eyebrow">${s === "front" ? "Vorderseite" : "Rückseite"}</div>
-        <div class="corner-grid">${[["tl","oben links"],["tr","oben rechts"],["bl","unten links"],["br","unten rechts"]].map(([c, l]) => `<figure><canvas data-crop="${s}:${c}"></canvas><figcaption>${l}</figcaption></figure>`).join("")}</div>`).join("")}
-      ${optsHtml("corners")}`;
-  } else if (key === "edges") {
-    const s = gr.back ? "back" : "front";
-    let hint = "";
-    if (gr.back) {
-      const w = whitening(gr.back.img, gr.back.lines);
-      const bad = Object.entries(w).filter(([, v]) => v > .4).sort((a, b) => b[1] - a[1]);
-      hint = bad.length
-        ? `<div class="hint"><strong>Automatischer Hinweis:</strong> Helle Stellen an der Kante ${bad.map(([k]) => k).join(", ")} gefunden. Prüf das in der Vergrößerung – auch eine Lichtspiegelung kann das auslösen.</div>`
-        : `<div class="hint ok"><strong>Automatischer Hinweis:</strong> Keine hellen Stellen an den Kanten der Rückseite gefunden.</div>`;
-    }
-    html = `<p class="small" style="margin:0">${COND.edges.intro}</p>${hint}
-      <div class="eyebrow">${s === "back" ? "Kanten der Rückseite" : "Kanten der Vorderseite"}</div>
-      <div class="edge-strips">${["top","right","bottom","left"].map(w => `<canvas data-crop="${s}:${w}" aria-label="Kante"></canvas>`).join("")}</div>
-      ${optsHtml("edges")}`;
-  } else if (key === "surface") {
-    html = `<p class="small" style="margin:0">${COND.surface.intro}</p>${optsHtml("surface")}`;
+    const cornerCrops = sides.map(s => `<div class="eyebrow">${SIDE_NAME[s]}</div><div class="corner-grid">${[["tl","oben links"],["tr","oben rechts"],["bl","unten links"],["br","unten rechts"]].map(([c, l]) => `<figure><canvas data-crop="${s}:${c}"></canvas><figcaption>${l}</figcaption></figure>`).join("")}</div>`).join("");
+    const es = gr.back ? "back" : "front";
+    const edgeCrops = `<div class="eyebrow">Kanten ${es === "back" ? "hinten" : "vorne"}</div><div class="edge-strips">${["top","right","bottom","left"].map(w => `<canvas data-crop="${es}:${w}" aria-label="Kante"></canvas>`).join("")}</div>`;
+    html = condBlock("corners", cornerCrops) + condBlock("edges", edgeCrops) + condBlock("surface", "");
   } else {
     html = renderResult();
-    next.textContent = gr.ctx ? "Bei der Karte speichern" : "Fertig";
   }
-  if (["corners","edges","surface"].includes(key)) { next.textContent = "Weiter"; next.disabled = gr.cond[key] == null; }
   $("#grBody").innerHTML = html;
   $("#grBody").scrollTop = 0;
-  if ((key === "front" || key === "back") && gr[key]) { renderLineChips(); bindMeasure(); requestAnimationFrame(drawMeasure); }
-  if (key === "corners" || key === "edges") requestAnimationFrame(drawCrops);
-}
-function optsHtml(k){
-  return `<div class="opts" role="group" aria-label="${COND[k].title}">${COND[k].opts.map(([v, t, d]) =>
-    `<button class="opt" data-cond="${k}" data-val="${v}" aria-pressed="${gr.cond[k] === v}"><strong>${t}</strong><span>${d}</span></button>`).join("")}</div>`;
+  updateNext();
+  requestAnimationFrame(() => {
+    drawThumbs();
+    if (key === "capture" && gr.capSide && (gStream || store.get("ks.camOn", false))) startGradeCam();
+    if (key === "centering" && gr.editSide) { renderLineChips(); bindMeasure(); drawMeasure(); }
+    if (key === "condition") drawCrops();
+  });
 }
 $("#grBody").addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t || !gr) return;
-  if (t.dataset.grcam) { loadGradingImage(GR_STEPS[gr.step][0], "camera"); return; }
-  if (t.dataset.regrphoto) { gr[GR_STEPS[gr.step][0]] = null; renderGrading(); return; }
+  if (t.dataset.camstart) { startGradeCam(); return; }
+  if (t.dataset.shoot) { if ($("#grVideo")?.readyState >= 2) captureSide(gr.capSide, "video"); else toast("Kamera ist noch nicht bereit"); return; }
+  if (t.dataset.retake) { const s = t.dataset.retake; gr[s] = null; gr.auto = null; gr.capSide = s; if (s === "front") { gr.cands = null; gr.idStatus = ""; } gHist = []; renderGrading(); return; }
+  if (t.dataset.edit) { gr.editSide = gr.editSide === t.dataset.edit ? null : t.dataset.edit; gr.sel = "oL"; renderGrading(); return; }
   if (t.dataset.line) { gr.sel = t.dataset.line; renderLineChips(); drawMeasure(); return; }
   if (t.dataset.nudge) {
-    const st = gr[GR_STEPS[gr.step][0]], step = Math.max(1, st.img.width / 800);
+    const st = gr[gr.editSide], step = Math.max(.5, st.img.width / 900);
     st.lines[gr.sel] += Number(t.dataset.nudge) * step; drawMeasure(); return;
   }
+  if (t.dataset.pick) { const c = gr.cands[Number(t.dataset.pick)]; gr.ctx = { cardId: c.card.id, lg: c.lg, name: c.card.name, setName: c.setName }; gr.cands = null; renderGrading(); return; }
   if (t.dataset.cond) {
-    gr.cond[t.dataset.cond] = Number(t.dataset.val);
-    $$(`[data-cond="${t.dataset.cond}"]`).forEach(b => b.setAttribute("aria-pressed", String(b === t)));
-    $("#grNext").disabled = false; return;
+    gr.cond[t.dataset.cond] = Number(t.dataset.val); gr.condUser[t.dataset.cond] = true;
+    const y = $("#grBody").scrollTop; renderGrading(); $("#grBody").scrollTop = y; return;
   }
 });
 $("#grBack").addEventListener("click", () => {
-  if (!gr) return;
-  if (gr.step === 0) return;
-  gr.step--; renderGrading();
+  if (!gr || gr.step === 0) return;
+  gr.step--; gr.editSide = null;
+  if (GR_STEPS[gr.step][0] === "capture" && !gr.back && !gr.backSkipped) gr.capSide = "back";
+  renderGrading();
 });
 $("#grNext").addEventListener("click", () => {
   if (!gr) return;
   const key = GR_STEPS[gr.step][0];
-  if ((key === "front" || key === "back") && gr[key] && !centering(gr[key].lines)) { toast("Bitte erst die Linien richtig setzen"); return; }
-  if (key === "back" && !gr.back) gr.backSkipped = true;
+  if (key === "capture") {
+    if (!gr.front) return;
+    if (!gr.back) gr.backSkipped = true;
+    gr.capSide = null; stopGradeCam();
+    gr.editSide = ["front", "back"].find(s => gr[s] && !gr[s].conf) || null;
+  }
+  if (key === "centering") {
+    if (gr.editSide) {
+      if (!centering(gr[gr.editSide].lines)) { toast("Bitte erst die Linien richtig setzen"); return; }
+      gr[gr.editSide].conf = true; gr.auto = null;
+      gr.editSide = ["front", "back"].find(s => gr[s] && !gr[s].conf) || null;
+      renderGrading(); return;
+    }
+  }
   if (key === "result") {
     if (gr.ctx) {
       const e = gradeEstimate();
@@ -1483,27 +1909,28 @@ $("#grNext").addEventListener("click", () => {
       store.set("ks.gradings", gradings);
       toast(`Einschätzung bei ${gr.ctx.name} gespeichert`);
     }
-    restartGrading();
-    return;
+    restartGrading(); return;
   }
   gr.step++; renderGrading();
 });
-window.addEventListener("resize", () => { if (gr && $("#measureCanvas")) drawMeasure(); });
+window.addEventListener("resize", () => { if (gr?.editSide && $("#measureCanvas")) drawMeasure(); });
 
 /* ---------- Tabs ---------- */
 function showTab(name){
   if (name === "collection") { closeSetDetail(); loadAllSets(); }
   $$("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
   ["scan","collection","grading","search"].forEach(t => $("#view-" + t).hidden = t !== name);
-  if (name === "grading") { if (!gr) openGrading(null); else requestAnimationFrame(() => { if ($("#measureCanvas")) drawMeasure(); }); }
+  if (name === "grading") { if (!gr) openGrading(null); else renderGrading(); }
+  else stopGradeCam();
   if (name === "scan") { if (store.get("ks.camOn", false)) startCamera(); }
   else stopCamera();
   if (name === "collection") renderCollection();
 }
 $$("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) stopCamera();
+  if (document.hidden) { stopCamera(); stopGradeCam(); }
   else if (!$("#view-scan").hidden && store.get("ks.camOn", false)) startCamera();
+  else if (gradingOpen() && gr && GR_STEPS[gr.step][0] === "capture" && gr.capSide) startGradeCam();
 });
 
 store.set("ks.collection", collection);   // migrierte Einträge sichern
