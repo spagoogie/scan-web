@@ -260,6 +260,8 @@ nav.tabs button{position:relative}
 .add-row input{flex:1;min-width:0}
 .tile .qty.soft{background:var(--surface-2);color:var(--fg)}
 .tile .need{position:absolute;left:4px;bottom:4px;z-index:1;background:var(--good);color:#fff;font:700 10px/1 var(--mono);padding:4px 6px;border-radius:99px}
+.tile.offered .img{outline:3px solid var(--good);outline-offset:2px;opacity:1;filter:none}
+.tile.offered.missing .img img{opacity:.55}
 .tile .frdot{position:absolute;left:4px;top:4px;display:inline-flex;align-items:center;gap:3px;background:var(--good);color:#fff;font:700 10px/1 var(--mono);padding:3px 6px;border-radius:99px}
 .tile .frdot svg{width:11px;height:11px}
 .panel.highlight{border-color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
@@ -274,6 +276,8 @@ nav.tabs button{position:relative}
 .tqty{display:grid;gap:6px;justify-items:end}
 .tqty .stepper button{width:32px;height:32px}
 .chip.tiny{font-size:12px;padding:4px 8px}
+.trow.dupe{cursor:pointer}
+.dupe-check{width:22px;height:22px;accent-color:var(--accent)}
 .tags{display:flex;gap:4px;flex-wrap:wrap}
 .pill.soft{background:var(--surface-2);color:var(--fg)}
 .price-col{font-weight:700;font-size:14px;text-align:right}
@@ -489,10 +493,10 @@ nav.tabs button{position:relative}
 <nav class="tabs" role="tablist">
   <button role="tab" data-tab="scan" aria-selected="true">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M7 12h10"/></svg>Scannen</button>
-  <button role="tab" data-tab="collection" aria-selected="false">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="16" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/></svg>Sammlung</button>
   <button role="tab" data-tab="grading" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v4h6V3M9 13l2 2 4-4"/></svg>Grading</button>
+  <button role="tab" data-tab="collection" aria-selected="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="16" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/></svg>Sammlung</button>
   <button role="tab" data-tab="trade" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>Tauschen<span class="tab-badge" id="tradeBadge" hidden></span></button>
   <button role="tab" data-tab="search" aria-selected="false">
@@ -1274,7 +1278,7 @@ function renderSetDetail(){
       ${!loading && noPrice ? `<div class="small">${noPrice} Karten ohne Preisangabe sind nicht eingerechnet.</div>` : ""}
       <div class="small">Summe der Cardmarket-Trendpreise, jeweils günstigste Variante.</div>
       ${ownerIdx.size ? (() => { const withF = missing.filter(c => ownerIdx.has(c.id)), inT = withF.filter(c => ownerIdx.get(c.id).some(o => o.trade > 0));
-        return withF.length ? `<div class="hint ok"><strong>${withF.length}</strong> der fehlenden Karten haben deine Freunde${inT.length ? `, <strong>${inT.length}</strong> davon im Tauschordner` : ""}. Grün markiert.</div>` : ""; })() : ""}
+        return withF.length ? `<div class="hint ok"><strong>${withF.length}</strong> der fehlenden Karten haben deine Freunde${inT.length ? `, <strong>${inT.length}</strong> davon im Tauschordner` : ""}. Grünes Symbol: ein Freund hat sie · grün umrandet: liegt in seinem Tauschordner.</div>` : ""; })() : ""}
     </div>`;
   }
   const sortLoading = (setSort.startsWith("price") && priceLoad?.running)
@@ -1304,7 +1308,8 @@ function renderSetDetail(){
     ${!setData ? `<div class="spinner"></div>` : setData.error ? `<div class="empty">${esc(setData.error)}</div>` :
       cards.length ? `<div class="grid">${cards.map(c => {
         const p = priceOf(c);
-        return `<button class="tile ${qty[c.id] ? "" : "missing"}" data-card="${esc(c.id)}">
+        const offered = !qty[c.id] && ownerIdx.get(c.id)?.some(o => o.trade > 0);
+        return `<button class="tile ${qty[c.id] ? "" : "missing"} ${offered ? "offered" : ""}" data-card="${esc(c.id)}">
           <div class="img">${cardImg(c.image, c.id, c.localId, { alt: c.name, lg })}</div>
           ${qty[c.id] ? `<span class="qty">${qty[c.id]}×</span>` : ""}
           ${!qty[c.id] && ownerIdx.has(c.id) ? `<span class="frdot" title="Bei Freunden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3.1 2.5 3.5 5.2"/></svg>${ownerIdx.get(c.id).length}</span>` : ""}
@@ -2705,9 +2710,42 @@ function takeDuplicates(){
   return n;
 }
 
+/* Doppelte vor dem Übernehmen prüfen: nur gleiche Nummer, Sprache und Variante zählen als doppelt */
+function dupeCandidates(){
+  return collection.filter(e => e.qty > 1 && (e.trade || 0) < e.qty - 1)
+    .sort((a, b) => (a.setName || "").localeCompare(b.setName || "", "de") || String(a.localId).localeCompare(String(b.localId), "de", { numeric: true }));
+}
+function openDupesReview(){
+  const list = dupeCandidates();
+  if (!list.length) { toast("Keine weiteren Doppelten"); return; }
+  openSheet("Doppelte übernehmen", `
+    <div class="small">Als doppelt gilt nur, was du unter <strong>derselben Nummer</strong>, Sprache und Variante mehrfach hast. Verschiedene Nummern derselben Karte (z. B. 084 und 138) sind getrennte Karten. Steht hier eine Karte, die du in Wahrheit in zwei verschiedenen Versionen hast, ist sie unter der falschen Nummer erfasst – wähl sie ab und korrigiere sie in der Kartenansicht unter „Versionen“.</div>
+    <div class="trows">${list.map(e => `<label class="trow dupe">
+      <div class="cimg">${cardImg(e.image, e.cardId, e.localId, { lg: e.lang })}</div>
+      <div class="tinfo"><strong>${esc(e.name)}</strong>
+        <div class="small"><span class="num">${esc(e.setName || "")} · Nr. ${esc(e.localId)}${e.setTotal ? "/" + e.setTotal : ""}</span> ${badge(e.lang)} ${VARIANTS[e.variant] || ""}</div>
+        <div class="small">${e.qty}× vorhanden → <strong>${e.qty - 1 - (e.trade || 0)}</strong> in den Tauschordner</div></div>
+      <input type="checkbox" class="dupe-check" data-dkey="${esc(e.key)}" checked aria-label="${esc(e.name)} übernehmen">
+    </label>`).join("")}</div>
+    <button class="btn primary block" id="dupesApply">Ausgewählte übernehmen</button>`);
+}
+$("#sheetBody").addEventListener("click", e => {
+  if (!e.target.closest("#dupesApply")) return;
+  const keys = new Set($$(".dupe-check").filter(c => c.checked).map(c => c.dataset.dkey));
+  let n = 0;
+  for (const x of collection) if (keys.has(x.key) && x.qty > 1) { n += x.qty - 1 - (x.trade || 0); x.trade = x.qty - 1; }
+  saveCollection(); closeSheet(); renderTrade();
+  toast(n ? `${n} Karten in den Tauschordner gelegt` : "Nichts übernommen");
+});
+$("#sheetBody").addEventListener("change", e => {
+  if (!e.target.classList.contains("dupe-check")) return;
+  const n = $$(".dupe-check").filter(c => c.checked).length, b = $("#dupesApply");
+  if (b) { b.textContent = n ? `${n} ${n === 1 ? "Karte" : "Karten"} übernehmen` : "Nichts ausgewählt"; b.disabled = !n; }
+});
+
 /* Karten-Kacheln für Freunde-Ansichten */
-function tradeTile(o, extra = "", inImg = ""){
-  return `<button class="tile" data-card="${esc(o.cardId)}" data-lg="${esc(o.lang || "de")}">
+function tradeTile(o, extra = "", inImg = "", cls = ""){
+  return `<button class="tile ${cls}" data-card="${esc(o.cardId)}" data-lg="${esc(o.lang || "de")}">
     <div class="img">${cardImg(o.image, o.cardId, o.localId, { alt: o.name, lg: o.lang || "de" })}${inImg}</div>
     ${extra}
     <span class="cap">${esc(o.name)}</span>
@@ -2776,7 +2814,7 @@ function folderHtml(){
         <button class="btn primary" data-tact="dupes" ${dupes ? "" : "disabled"}>Doppelte übernehmen${dupes ? ` (${dupes})` : ""}</button>
         ${n ? `<button class="btn" data-tact="clear">${friendConfirm === "clear" ? "Wirklich leeren?" : "Ordner leeren"}</button>` : ""}
       </div>
-      <div class="small">„Doppelte übernehmen“ legt von jeder Karte, die du mehrfach hast, alle bis auf eine in den Ordner. Einzelne Karten und die genaue Anzahl stellst du in der Kartenansicht unter „Zum Tausch“ ein.</div>
+      <div class="small">„Doppelte übernehmen“ zeigt dir alle Karten, die du unter derselben Nummer mehrfach hast – du wählst aus, welche in den Ordner kommen (jeweils alle bis auf eine). Einzelne Karten und die genaue Anzahl stellst du in der Kartenansicht unter „Zum Tausch“ ein.</div>
     </div>
     ${list.length ? `<div class="grid">${list.map(e => tradeTile(e, `<span class="qty">${e.trade}×</span>`)).join("")}</div>`
       : `<div class="empty">Dein Tauschordner ist leer.</div>`}`;
@@ -2800,7 +2838,8 @@ function friendDetailHtml(uid){
   const list = (friendTab === "forthem" ? lists.forthem : lists[friendTab]).slice().sort((a, b) => (b.price || 0) - (a.price || 0));
   const tile = o => tradeTile(o, friendTab === "forthem" ? `<span class="qty">${o.trade}×</span>`
     : (o.trade ? `<span class="qty">${o.trade}× Tausch</span>` : `<span class="qty soft">${o.qty}×</span>`),
-    friendTab !== "forthem" && !mine.has(o.cardId) ? `<span class="need">fehlt dir</span>` : "");
+    friendTab !== "forthem" && !mine.has(o.cardId) ? `<span class="need">fehlt dir</span>` : "",
+    friendTab !== "forthem" && !mine.has(o.cardId) && o.trade > 0 ? "offered" : "");
   const empty = { trade: `${esc(name)} hat noch nichts in den Tauschordner gelegt.`, forme: `${esc(name)} hat keine Karte, die dir fehlt.`, forthem: `Nichts aus deinem Tauschordner fehlt ${esc(name)}.` }[friendTab];
   return `<button class="back" data-tact="back">‹ Freunde</button>
     <div class="panel acct-head">
@@ -2861,7 +2900,7 @@ $("#tradeBody").addEventListener("click", async e => {
     const a = t.dataset.tact;
     if (a === "back") { openFriend = null; friendConfirm = null; renderTrade(); }
     else if (a === "login") { acctMode = "login"; openAccount(); }
-    else if (a === "dupes") { const n = takeDuplicates(); toast(n ? `${n} Karten in den Tauschordner gelegt` : "Keine weiteren Doppelten"); renderTrade(); }
+    else if (a === "dupes") { openDupesReview(); }
     else if (a === "clear") {
       if (friendConfirm !== "clear") { friendConfirm = "clear"; renderTrade(); return; }
       for (const x of collection) x.trade = 0; friendConfirm = null; saveCollection(); toast("Tauschordner geleert"); renderTrade();
