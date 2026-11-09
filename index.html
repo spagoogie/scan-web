@@ -264,6 +264,35 @@ nav.tabs button{position:relative}
 .tile .frdot svg{width:11px;height:11px}
 .panel.highlight{border-color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
 .trade-line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-left:10px;border-left:2px solid var(--line);margin-top:-4px}
+/* Tauschangebote */
+.tc-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.trows{display:grid;gap:8px}
+.trow{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px;text-align:left;width:100%}
+.trow .cimg{width:48px}
+.tinfo{min-width:0;display:grid;gap:2px}
+.tinfo strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tqty{display:grid;gap:6px;justify-items:end}
+.tqty .stepper button{width:32px;height:32px}
+.chip.tiny{font-size:12px;padding:4px 8px}
+.tags{display:flex;gap:4px;flex-wrap:wrap}
+.pill.soft{background:var(--surface-2);color:var(--fg)}
+.price-col{font-weight:700;font-size:14px;text-align:right}
+.balance{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:grid;gap:8px}
+.bal-row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:15px}
+.bal-bar{height:10px;border-radius:99px;background:var(--accent);overflow:hidden}
+.bal-bar i{display:block;height:100%;background:var(--good)}
+.ok-text{color:var(--good);font-weight:600}
+.acct-form textarea{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;width:100%;resize:vertical;font:inherit}
+.trade-card{display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;text-align:left;width:100%}
+.trade-card.attn{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.tc-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.spill{font:700 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.04em;padding:5px 8px;border-radius:99px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.spill.warn{background:color-mix(in srgb,var(--gold) 25%,transparent);color:var(--fg)}
+.spill.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.tc-sum{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.confirms{display:flex;gap:16px;margin-top:8px;font-weight:600}
+.tnote{margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--bg);font-style:italic}
+.tiny-btn{min-height:32px;padding:5px 10px;font-size:13px}
 .footer-link{display:block;margin:28px auto 8px;background:none;border:0;color:var(--muted);font-size:14px;text-decoration:underline}
 .privacy h3{font-size:18px;font-weight:800;margin-top:6px}
 .privacy p,.privacy ul{margin:0;line-height:1.5;max-width:65ch}
@@ -433,6 +462,7 @@ nav.tabs button{position:relative}
     <div class="view-head"><h1>Tauschen</h1></div>
     <div class="filters" id="tradeTabs" role="tablist">
       <button class="chip" data-tview="friends" aria-pressed="true">Freunde</button>
+      <button class="chip" data-tview="offers" aria-pressed="false">Angebote<span id="offersCount"></span></button>
       <button class="chip" data-tview="folder" aria-pressed="false">Mein Tauschordner</button>
     </div>
     <div id="tradeBody"></div>
@@ -853,7 +883,8 @@ const sheetOpen = () => !$("#sheet").hidden;
 var sheetGen = 0;
 function openSheet(title, html){
   sheetGen++;
-  $("#sheetBody")._acct = false;
+  const sb = $("#sheetBody");
+  sb._acct = false; sb._card = null; sb._tc = false; sb._tradeId = null;
   $("#sheetTitle").textContent = title; $("#sheetBody").innerHTML = html;
   $("#scrim").hidden = false; $("#sheet").hidden = false;
   requestAnimationFrame(() => { $("#scrim").classList.add("open"); $("#sheet").classList.add("open"); });
@@ -866,6 +897,8 @@ function closeSheet(){
   // Nur ausblenden, wenn inzwischen kein neues Fenster geöffnet wurde
   setTimeout(() => { if (gen === sheetGen) { $("#scrim").hidden = true; $("#sheet").hidden = true; } }, 220);
   sheetCard = null;
+  if ($("#sheetBody")._tc) tc = null;
+  openTradeId = null;
   cooldownUntil = Date.now() + 4000; lastParsed = null;
   if (openSet) renderSetDetail();
 }
@@ -2543,6 +2576,8 @@ $("#sheetBody").addEventListener("submit", async e => {
       const uid = user.uid, name = me.username, wipe = $("#fWipe")?.checked !== false;
       const fs = await fb.db.collection("friendships").where("users", "array-contains", uid).get();
       for (const d of fs.docs) await d.ref.delete();
+      const ts = await fb.db.collection("trades").where("users", "array-contains", uid).get();
+      for (const d of ts.docs) await d.ref.delete();
       stopFriends();
       await cloudRef().delete();
       if (name) await fb.db.collection("usernames").doc(name).delete();
@@ -2596,12 +2631,14 @@ function startFriends(){
     }
     rebuildOwners();
   }, () => { fr.ready = true; renderTrade(); });
+  startTrades();
 }
 function stopFriends(){
   if (fr.unsubQ) fr.unsubQ();
   for (const u of Object.values(fr.collUnsubs)) u();
   fr = { all: [], profiles: {}, colls: {}, collUnsubs: {}, unsubQ: null, ready: false };
   ownerIdx = new Map(); openFriend = null;
+  if (typeof stopTrades === "function") stopTrades();
   renderTradeBadge();
 }
 async function loadProfile(uid){
@@ -2630,8 +2667,9 @@ function rebuildOwners(){
   if (sheetOpen() && card && !$("#sheetBody")._acct) { const box = $("#friendsBox"); if (box) box.innerHTML = friendsPanel(card); }
 }
 function renderTradeBadge(){
-  const n = fr.all.filter(f => f.status === "pending" && f.requester !== me?.uid).length;
+  const n = fr.all.filter(f => f.status === "pending" && f.requester !== me?.uid).length + (me ? trades.filter(needsMe).length : 0);
   const b = $("#tradeBadge"); if (!b) return;
+  const ob = $("#offersCount"); if (ob) { const k = me ? trades.filter(needsMe).length : 0; ob.textContent = k ? ` (${k})` : ""; }
   b.textContent = n; b.hidden = !n;
 }
 
@@ -2690,6 +2728,7 @@ function renderTrade(){
   }
   if (openFriend) { box.innerHTML = friendDetailHtml(openFriend); return; }
   if (tradeView === "folder") { box.innerHTML = folderHtml(); return; }
+  if (tradeView === "offers") { box.innerHTML = offersHtml(); return; }
 
   const incoming = fr.all.filter(f => f.status === "pending" && f.requester !== me.uid);
   const outgoing = fr.all.filter(f => f.status === "pending" && f.requester === me.uid);
@@ -2768,11 +2807,12 @@ function friendDetailHtml(uid){
       <span class="avatar big">${esc(name[0]?.toUpperCase() || "?")}</span>
       <div style="min-width:0"><h2 style="font-size:24px">${esc(name)}</h2><div class="small">${items.reduce((s, e) => s + e.qty, 0)} Karten · ${lists.trade.reduce((s, o) => s + o.trade, 0)} im Tauschordner</div></div>
     </div>
+    <button class="btn primary block" data-tact="offer" style="margin-bottom:14px">Tausch anbieten</button>
     <div class="filters">${[["trade", `Tauschordner (${lists.trade.length})`], ["forme", `Fehlt mir (${lists.forme.length})`], ["forthem", `Fehlt ${name} (${lists.forthem.length})`]]
       .map(([k, l]) => `<button class="chip" data-ftab="${k}" aria-pressed="${friendTab === k}">${esc(l)}</button>`).join("")}</div>
     ${friendTab === "forthem" ? `<p class="small" style="margin:0 0 12px">Karten aus deinem Tauschordner, die ${esc(name)} noch nicht hat – gute Tauschangebote.</p>` : ""}
     ${list.length ? `<div class="grid">${list.map(tile).join("")}</div>` : `<div class="empty">${empty}</div>`}
-    <p class="note" style="margin-top:20px">Tausch-Angebote direkt in der App kommen in der nächsten Stufe. Bis dahin sprecht euch einfach ab.</p>
+
     ${f ? `<button class="btn block link-danger" data-unfriend="${esc(f.id)}">${friendConfirm === f.id ? `Wirklich ${esc(name)} entfernen?` : "Freund entfernen"}</button>` : ""}`;
 }
 /* Panel „Bei deinen Freunden“ in der Kartenansicht */
@@ -2786,9 +2826,8 @@ function friendsPanel(card){
     ${owners.map(o => `<div class="owned-line">
       <div><strong>${esc(friendName(o.uid))}</strong> ${[...o.langs].map(badge).join(" ")}
         <div class="small">${o.qty}× · ${[...o.variants].map(v => VARIANTS[v] || v).join(", ")}</div></div>
-      ${o.trade ? `<span class="pill">${o.trade}× zum Tausch</span>` : `<span class="small">nicht im Tauschordner</span>`}
+      <div class="fr-act">${o.trade ? `<span class="pill">${o.trade}× zum Tausch</span>` : ""}<button class="btn tiny-btn" data-tcfrom="${esc(o.uid)}" data-tccard="${esc(card.id)}">Tausch anfragen</button></div>
     </div>`).join("")}
-    ${!iOwn ? `<div class="small">Frag nach einem Tausch – Angebote direkt in der App kommen in der nächsten Stufe.</div>` : ""}
   </div>`;
 }
 
@@ -2809,6 +2848,8 @@ $("#tradeBody").addEventListener("click", async e => {
   const t = e.target.closest("button"); if (!t) return;
   try {
     if (t.dataset.card) { openCard(t.dataset.card, t.dataset.lg); return; }
+    if (t.dataset.trade) { openTradeDetail(t.dataset.trade); return; }
+    if (t.dataset.tact === "offer") { openComposer(openFriend); return; }
     if (t.dataset.friend) { openFriend = t.dataset.friend; friendTab = "trade"; friendConfirm = null; renderTrade(); $("#view-trade").scrollTop = 0; return; }
     if (t.dataset.ftab) { friendTab = t.dataset.ftab; renderTrade(); return; }
     if (t.dataset.accept) { t.disabled = true; await acceptFriend(t.dataset.accept); toast("Freundschaft bestätigt"); return; }
@@ -2828,6 +2869,369 @@ $("#tradeBody").addEventListener("click", async e => {
   } catch (x) { toast(x?.message || "Das hat nicht geklappt"); renderTrade(); }
 });
 
+/* ---------- Tauschangebote ---------- */
+var trades = [], tradesUnsub = null, applyingTrades = new Set();
+var tc = null;               // Angebot in Arbeit: { uid, get: [], give: [], note, counterOf, pick, q }
+var openTradeId = null, tradeConfirm = null;
+const STATUS = {
+  open: ["Offen", "warn"], accepted: ["Vereinbart", "good"], done: ["Erledigt", "good"],
+  declined: ["Abgelehnt", ""], withdrawn: ["Zurückgezogen", ""], countered: ["Gegenangebot", ""], cancelled: ["Abgebrochen", ""]
+};
+const tsMs = v => v?.toMillis ? v.toMillis() : (typeof v === "number" ? v : 0);
+
+function startTrades(){
+  stopTrades();
+  if (!fb || !me?.username) return;
+  tradesUnsub = fb.db.collection("trades").where("users", "array-contains", me.uid).onSnapshot(qs => {
+    trades = qs.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => tsMs(b.updatedAt) - tsMs(a.updatedAt));
+    for (const t of trades) for (const u of t.users) if (u !== me.uid) loadProfile(u);
+    renderTradeBadge(); renderTrade();
+    if (openTradeId && sheetOpen() && $("#sheetBody")._tradeId === openTradeId) renderTradeDetail();
+    applyDoneTrades();
+  }, () => {});
+}
+function stopTrades(){
+  if (tradesUnsub) tradesUnsub();
+  tradesUnsub = null; trades = []; tc = null; openTradeId = null;
+}
+const myRole = t => t.from === me?.uid ? "from" : "to";
+const partner = t => t.from === me?.uid ? t.to : t.from;
+/** Aus meiner Sicht: was bekomme ich, was gebe ich? */
+const tradeSides = t => myRole(t) === "from" ? { get: t.get || [], give: t.give || [] } : { get: t.give || [], give: t.get || [] };
+const sumItems = list => list.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0);
+const countItems = list => list.reduce((s, i) => s + (i.qty || 1), 0);
+const needsMe = t => (t.status === "open" && t.to === me?.uid) || (t.status === "accepted" && !(t.confirmations || {})[me?.uid]);
+
+const toItem = (e, qty = 1) => JSON.parse(JSON.stringify({
+  key: e.key, cardId: e.cardId, lang: e.lang, variant: e.variant, name: e.name, localId: e.localId,
+  setId: e.setId, setName: e.setName, setTotal: e.setTotal ?? null, image: e.image ?? null,
+  rarity: e.rarity ?? null, price: e.price ?? null, qty
+}));
+
+/* ===== Umbuchen nach Abschluss ===== */
+function removeItem(it){
+  let n = it.qty || 1;
+  const cands = [collection.find(e => e.key === it.key), ...collection.filter(e => e.cardId === it.cardId && e.key !== it.key && e.lang === it.lang), ...collection.filter(e => e.cardId === it.cardId && e.lang !== it.lang)].filter(Boolean);
+  for (const e of cands) {
+    if (n <= 0) break;
+    const take = Math.min(n, e.qty);
+    e.qty -= take; n -= take;
+    e.trade = Math.max(0, Math.min(e.qty, (e.trade || 0) - take));
+  }
+  collection = collection.filter(e => e.qty > 0);
+}
+function addItem(it){
+  const key = `${it.lang}|${it.cardId}|${it.variant}`;
+  const ex = collection.find(e => e.key === key);
+  if (ex) { ex.qty += it.qty || 1; return; }
+  collection.push({ key, lang: it.lang, cardId: it.cardId, name: it.name, localId: it.localId, setId: it.setId, setName: it.setName,
+    setTotal: it.setTotal ?? null, image: it.image ?? null, rarity: it.rarity ?? null, variant: it.variant, qty: it.qty || 1, trade: 0,
+    price: it.price ?? null, priceAt: Date.now(), addedAt: Date.now() });
+}
+async function applyDoneTrades(){
+  const doneLocal = new Set(store.get("ks.appliedTrades." + me.uid, []));
+  for (const t of trades) {
+    if (t.status !== "done" || (t.appliedBy || {})[me.uid] || applyingTrades.has(t.id) || doneLocal.has(t.id)) continue;
+    applyingTrades.add(t.id);
+    try {
+      const ref = fb.db.collection("trades").doc(t.id);
+      let ok = false;
+      // Transaktion: auf zwei Geräten desselben Nutzers wird nur einmal umgebucht
+      await fb.db.runTransaction(async tx => {
+        const s = await tx.get(ref), d = s.data();
+        ok = !!d && d.status === "done" && !(d.appliedBy || {})[me.uid];
+        // Nur das eigene Feld setzen – so kann niemand die Markierung des anderen überschreiben
+        if (ok) tx.update(ref, { ["appliedBy." + me.uid]: true, updatedAt: fb.FieldValue.serverTimestamp() });
+      });
+      if (ok) {
+        doneLocal.add(t.id); store.set("ks.appliedTrades." + me.uid, [...doneLocal].slice(-300));
+        const { get, give } = tradeSides(t);
+        for (const it of give) removeItem(it);
+        for (const it of get) addItem(it);
+        saveCollection();
+        toast(`Tausch mit ${friendName(partner(t))} umgebucht: +${countItems(get)} / −${countItems(give)} Karten`);
+      }
+    } catch { /* nächster Versuch beim nächsten Update */ }
+    applyingTrades.delete(t.id);
+  }
+}
+
+/* ===== Aktionen ===== */
+async function tradeUpdate(id, fn){
+  const ref = fb.db.collection("trades").doc(id);
+  await fb.db.runTransaction(async tx => {
+    const s = await tx.get(ref); if (!s.exists) throw new Error("Das Angebot gibt es nicht mehr.");
+    const patch = fn(s.data()); if (patch) tx.update(ref, { ...patch, updatedAt: fb.FieldValue.serverTimestamp() });
+  });
+}
+function missingForMe(list){
+  // Prüft, ob ich die Karten, die ich abgeben soll, noch habe
+  const short = [];
+  for (const it of list) {
+    const have = collection.filter(e => e.cardId === it.cardId).reduce((s, e) => s + e.qty, 0);
+    if (have < (it.qty || 1)) short.push(it.name);
+  }
+  return short;
+}
+async function doTrade(action, t){
+  if (action === "accept") {
+    const short = missingForMe(tradeSides(t).give);
+    if (short.length) throw new Error(`Du hast nicht mehr genug davon: ${short.join(", ")}`);
+    await tradeUpdate(t.id, d => d.status === "open" ? { status: "accepted" } : null);
+    toast("Angenommen – jetzt die Karten übergeben");
+  } else if (action === "decline") {
+    await tradeUpdate(t.id, d => d.status === "open" ? { status: "declined" } : null); toast("Abgelehnt");
+  } else if (action === "withdraw") {
+    await tradeUpdate(t.id, d => d.status === "open" ? { status: "withdrawn" } : null); toast("Zurückgezogen");
+  } else if (action === "cancel") {
+    await tradeUpdate(t.id, d => d.status === "accepted" ? { status: "cancelled" } : null); toast("Tausch abgebrochen");
+  } else if (action === "confirm") {
+    await tradeUpdate(t.id, d => {
+      if (d.status !== "accepted") return null;
+      const conf = { ...(d.confirmations || {}), [me.uid]: true };
+      const mine = { ["confirmations." + me.uid]: true };
+      return d.users.every(u => conf[u]) ? { status: "done", ...mine } : mine;
+    });
+    toast("Bestätigt");
+  } else if (action === "counter") {
+    const { get, give } = tradeSides(t);
+    closeSheet();
+    openComposer(partner(t), { get: get.map(i => ({ ...i })), give: give.map(i => ({ ...i })), counterOf: t.id });
+  }
+}
+
+/* ===== Angebot erstellen ===== */
+function openComposer(uid, preset = {}){
+  tc = { uid, get: preset.get || [], give: preset.give || [], note: "", counterOf: preset.counterOf || null, pick: null, q: "" };
+  openSheet(preset.counterOf ? `Gegenangebot an ${friendName(uid)}` : `Tausch mit ${friendName(uid)}`, "");
+  $("#sheetBody")._tc = true;
+  renderComposer();
+}
+const theirItems = () => fr.colls[tc.uid] || [];
+const availOf = (side, key) => ((side === "get" ? theirItems() : collection).find(e => e.key === key)?.qty) || 0;
+function balanceHtml(){
+  const vGet = sumItems(tc.get), vGive = sumItems(tc.give), diff = vGive - vGet, total = Math.max(vGet, vGive, .01);
+  const fair = Math.abs(diff) <= Math.max(1, total * .1);
+  const pctGet = vGet / (vGet + vGive || 1) * 100;
+  return `<div class="balance">
+    <div class="bal-row"><span>Du bekommst <strong class="num">${fmt(vGet)}</strong></span><span>Du gibst <strong class="num">${fmt(vGive)}</strong></span></div>
+    <div class="bal-bar"><i style="width:${pctGet}%"></i></div>
+    <div class="small ${fair ? "ok-text" : ""}">${!tc.get.length && !tc.give.length ? "Wähle Karten für beide Seiten." : fair ? "Fairer Tausch – die Werte sind ausgeglichen." : diff > 0 ? `Du gibst ${fmt(diff)} mehr, als du bekommst.` : `Du bekommst ${fmt(-diff)} mehr, als du gibst.`}</div>
+  </div>`;
+}
+function itemRow(it, side){
+  const max = availOf(side, it.key);
+  return `<div class="trow">
+    <div class="cimg">${cardImg(it.image, it.cardId, it.localId, { lg: it.lang })}</div>
+    <div class="tinfo"><strong>${esc(it.name)}</strong>
+      <div class="small"><span class="num">${esc(it.setName || "")} · ${esc(it.localId)}</span> ${badge(it.lang)} ${VARIANTS[it.variant] || ""}</div>
+      <div class="small num">${it.price != null ? fmt(it.price) + " / Stück" : "kein Preis"}</div></div>
+    <div class="tqty">
+      <div class="stepper"><button data-tcq="-1" data-side="${side}" data-key="${esc(it.key)}" aria-label="Weniger" ${it.qty <= 1 ? "disabled" : ""}>−</button><span class="num">${it.qty}×</span><button data-tcq="1" data-side="${side}" data-key="${esc(it.key)}" aria-label="Mehr" ${it.qty >= max ? "disabled" : ""}>+</button></div>
+      <button class="chip tiny" data-tcrm="${esc(it.key)}" data-side="${side}">Entfernen</button>
+    </div>
+  </div>`;
+}
+function renderComposer(){
+  if (!tc) return;
+  const body = $("#sheetBody"), name = friendName(tc.uid);
+  if (tc.pick) { renderPicker(); return; }
+  body.innerHTML = `
+    <div class="panel">
+      <div class="tc-head"><strong>Du bekommst von ${esc(name)}</strong><span class="small num">${countItems(tc.get)} Karten</span></div>
+      ${tc.get.map(i => itemRow(i, "get")).join("") || `<div class="small">Noch nichts ausgewählt.</div>`}
+      <button class="btn block" data-tcpick="get">+ Karte von ${esc(name)} wählen</button>
+    </div>
+    <div class="panel">
+      <div class="tc-head"><strong>Du gibst</strong><span class="small num">${countItems(tc.give)} Karten</span></div>
+      ${tc.give.map(i => itemRow(i, "give")).join("") || `<div class="small">Noch nichts ausgewählt.</div>`}
+      <div class="row-btns"><button class="btn" data-tcpick="give">+ Eigene Karte wählen</button>${tc.get.length ? `<button class="btn" data-tcsuggest="1">Ausgleich vorschlagen</button>` : ""}</div>
+    </div>
+    ${balanceHtml()}
+    <div class="panel acct-form">
+      <strong>Nachricht (optional)</strong>
+      <textarea id="tcNote" maxlength="300" rows="2" placeholder="z. B. Treffen am Samstag?">${esc(tc.note)}</textarea>
+    </div>
+    <div class="form-err" id="tcErr"></div>
+    <button class="btn primary block" data-tcsend="1" ${tc.get.length + tc.give.length ? "" : "disabled"}>${tc.counterOf ? "Gegenangebot senden" : "Angebot senden"}</button>
+    <p class="note">Die Karten werden erst umgebucht, wenn ihr beide den Tausch als erledigt bestätigt.</p>`;
+}
+function pickerRows(){
+  const side = tc.pick, name = friendName(tc.uid), mine = ownedIds(), theirsSet = new Set(theirItems().map(e => e.cardId));
+  const chosen = new Set((side === "get" ? tc.get : tc.give).map(i => i.key));
+  const q = tc.q.trim().toLowerCase();
+  let list = (side === "get" ? theirItems() : collection).filter(e => !chosen.has(e.key));
+  if (q) list = list.filter(e => `${e.name} ${e.setName} ${e.localId}`.toLowerCase().includes(q));
+  const useful = e => side === "get" ? !mine.has(e.cardId) : !theirsSet.has(e.cardId);
+  list.sort((a, b) => (b.trade > 0) - (a.trade > 0) || useful(b) - useful(a) || (b.price || 0) - (a.price || 0));
+  if (!list.length) return `<div class="empty">${q ? "Keine Treffer." : side === "get" ? `${esc(name)} hat keine weiteren Karten.` : "Keine weiteren Karten in deiner Sammlung."}</div>`;
+  return list.slice(0, 150).map(e => `<button class="trow pick" data-tcadd="${esc(e.key)}">
+      <div class="cimg">${cardImg(e.image, e.cardId, e.localId, { lg: e.lang })}</div>
+      <div class="tinfo"><strong>${esc(e.name)}</strong>
+        <div class="small"><span class="num">${esc(e.setName || "")} · ${esc(e.localId)}</span> ${badge(e.lang)} ${VARIANTS[e.variant] || ""} · ${e.qty}×</div>
+        <div class="tags">${e.trade > 0 ? `<span class="pill">${e.trade}× im Tauschordner</span>` : ""}${useful(e) ? `<span class="pill soft">${side === "get" ? "fehlt dir" : `fehlt ${esc(name)}`}</span>` : ""}</div></div>
+      <div class="num price-col">${e.price != null ? fmt(e.price) : "–"}</div>
+    </button>`).join("");
+}
+function renderPicker(){
+  const side = tc.pick, name = friendName(tc.uid);
+  $("#sheetBody").innerHTML = `
+    <button class="back" data-tcback="1">‹ Zurück zum Angebot</button>
+    <strong>${side === "get" ? `Karten von ${esc(name)}` : "Deine Karten"}</strong>
+    <input id="tcQ" class="filter-input" type="search" placeholder="Name, Set oder Nummer" value="${esc(tc.q)}" autocomplete="off">
+    <div class="trows" id="tcList">${pickerRows()}</div>`;
+}
+function suggestBalance(){
+  const target = sumItems(tc.get) - sumItems(tc.give);
+  if (target <= 0) { toast("Du gibst schon genug"); return; }
+  const theirsSet = new Set(theirItems().map(e => e.cardId)), chosen = new Set(tc.give.map(i => i.key));
+  const cands = collection.filter(e => (e.trade || 0) > 0 && !chosen.has(e.key) && e.price)
+    .sort((a, b) => (!theirsSet.has(b.cardId)) - (!theirsSet.has(a.cardId)) || b.price - a.price);
+  let rest = target, added = 0;
+  for (const e of cands) {
+    if (rest <= Math.max(.5, target * .05)) break;
+    if (e.price <= rest * 1.15) { const n = Math.min(e.trade, Math.max(1, Math.floor((rest * 1.15) / e.price))); tc.give.push(toItem(e, n)); rest -= e.price * n; added++; }
+  }
+  if (!added && cands.length) {
+    // Nichts passt genau: die günstigste Tauschkarte, die den Rest abdeckt
+    const e = [...cands].sort((a, b) => a.price - b.price).find(x => x.price >= rest) || cands[cands.length - 1];
+    tc.give.push(toItem(e, 1)); added = 1;
+  }
+  if (!added) toast("Dein Tauschordner ist leer – leg zuerst Karten hinein"); else toast(`${added} ${added === 1 ? "Karte" : "Karten"} aus deinem Tauschordner vorgeschlagen`);
+  renderComposer();
+}
+async function sendTrade(){
+  if (!isFriendUid(tc.uid)) throw new Error("Ihr seid nicht mehr befreundet.");
+  const short = missingForMe(tc.give);
+  if (short.length) throw new Error(`Davon hast du nicht genug: ${short.join(", ")}`);
+  const doc = {
+    from: me.uid, to: tc.uid, users: [me.uid, tc.uid], status: "open",
+    give: tc.give.map(i => toItem(i, i.qty)), get: tc.get.map(i => toItem(i, i.qty)),
+    note: (tc.note || "").slice(0, 300), counterOf: tc.counterOf || null,
+    createdAt: fb.FieldValue.serverTimestamp(), updatedAt: fb.FieldValue.serverTimestamp()
+  };
+  await fb.db.collection("trades").add(doc);
+  if (tc.counterOf) { try { await tradeUpdate(tc.counterOf, d => d.status === "open" ? { status: "countered" } : null); } catch {} }
+  const name = friendName(tc.uid);
+  tc = null; closeSheet(); toast(`Angebot an ${name} gesendet`);
+  tradeView = "offers"; openFriend = null; showTab("trade");
+}
+const isFriendUid = uid => acceptedFriends().includes(uid);
+
+/* ===== Postfach ===== */
+function tradeCard(t){
+  const { get, give } = tradeSides(t), name = friendName(partner(t)), [label, cls] = STATUS[t.status] || [t.status, ""];
+  const head = t.status === "open" ? (myRole(t) === "to" ? `${esc(name)} bietet dir einen Tausch an` : `Dein Angebot an ${esc(name)}`)
+    : `Tausch mit ${esc(name)}`;
+  const conf = t.confirmations || {};
+  const sub = t.status === "accepted" ? (conf[me.uid] ? `Warte auf ${esc(name)}` : "Bitte nach der Übergabe bestätigen") : "";
+  return `<button class="trade-card ${needsMe(t) ? "attn" : ""}" data-trade="${esc(t.id)}">
+    <div class="tc-top"><strong>${head}</strong><span class="spill ${cls}">${label}</span></div>
+    <div class="tc-sum">
+      <div><span class="small">Du bekommst</span><div class="num">${countItems(get)} ${countItems(get) === 1 ? "Karte" : "Karten"} · ${fmt(sumItems(get))}</div></div>
+      <div><span class="small">Du gibst</span><div class="num">${countItems(give)} ${countItems(give) === 1 ? "Karte" : "Karten"} · ${fmt(sumItems(give))}</div></div>
+    </div>
+    ${sub ? `<div class="small">${sub}</div>` : ""}
+  </button>`;
+}
+function offersHtml(){
+  const forMe = trades.filter(t => t.status === "open" && t.to === me.uid);
+  const agreed = trades.filter(t => t.status === "accepted");
+  const sent = trades.filter(t => t.status === "open" && t.from === me.uid);
+  const past = trades.filter(t => !["open", "accepted"].includes(t.status)).slice(0, 25);
+  const sec = (title, list) => list.length ? `<div class="section-title"><h2>${title}</h2><span class="small">${list.length}</span></div><div class="sets">${list.map(tradeCard).join("")}</div>` : "";
+  if (!trades.length) return `<div class="empty"><h2>Noch keine Angebote</h2>Öffne einen Freund unter „Freunde“ und tippe auf „Tausch anbieten“ – oder in einer Karte bei „Bei deinen Freunden“ auf „Tausch anfragen“.</div>`;
+  return sec("Für dich", forMe) + sec("Vereinbart", agreed) + sec("Gesendet", sent) + sec("Verlauf", past);
+}
+function openTradeDetail(id){
+  openTradeId = id; tradeConfirm = null;
+  openSheet("Tausch", "");
+  $("#sheetBody")._tradeId = id;
+  renderTradeDetail();
+}
+function renderTradeDetail(){
+  const t = trades.find(x => x.id === openTradeId); if (!t) { closeSheet(); return; }
+  const { get, give } = tradeSides(t), name = friendName(partner(t)), role = myRole(t), [label, cls] = STATUS[t.status] || [t.status, ""];
+  const conf = t.confirmations || {};
+  const list = items => items.length ? items.map(i => `<div class="trow">
+      <div class="cimg">${cardImg(i.image, i.cardId, i.localId, { lg: i.lang })}</div>
+      <div class="tinfo"><strong>${esc(i.name)}</strong><div class="small"><span class="num">${esc(i.setName || "")} · ${esc(i.localId)}</span> ${badge(i.lang)} ${VARIANTS[i.variant] || ""}</div></div>
+      <div class="num price-col">${i.qty}× ${i.price != null ? `<br>${fmt(i.price * i.qty)}` : ""}</div>
+    </div>`).join("") : `<div class="small">Nichts.</div>`;
+  let info = "", actions = "";
+  if (t.status === "open" && role === "to") {
+    info = `${esc(name)} schlägt diesen Tausch vor.`;
+    actions = `<button class="btn primary block" data-tdo="accept">Annehmen</button>
+      <button class="btn block" data-tdo="counter">Gegenangebot machen</button>
+      <button class="btn block link-danger" data-tdo="decline">Ablehnen</button>`;
+  } else if (t.status === "open") {
+    info = `Wartet auf die Antwort von ${esc(name)}.`;
+    actions = `<button class="btn block link-danger" data-tdo="withdraw">Angebot zurückziehen</button>`;
+  } else if (t.status === "accepted") {
+    info = `Vereinbart! Übergebt euch die Karten – persönlich oder per Post. Tippt danach <strong>beide</strong> auf „Tausch erledigt“. Dann bucht die App die Karten in euren Sammlungen automatisch um.
+      <div class="confirms"><span class="${conf[me.uid] ? "ok-text" : ""}">${conf[me.uid] ? "✓" : "○"} Du</span><span class="${conf[partner(t)] ? "ok-text" : ""}">${conf[partner(t)] ? "✓" : "○"} ${esc(name)}</span></div>`;
+    actions = `${conf[me.uid] ? "" : `<button class="btn primary block" data-tdo="confirm">Tausch erledigt – Karten erhalten</button>`}
+      <button class="btn block link-danger" data-tdo="cancel">${tradeConfirm === "cancel" ? "Wirklich abbrechen?" : "Tausch abbrechen"}</button>`;
+  } else if (t.status === "done") {
+    info = (t.appliedBy || {})[me.uid] ? "Abgeschlossen – die Karten sind in deiner Sammlung umgebucht." : "Abgeschlossen – die Karten werden gerade umgebucht …";
+  } else if (t.status === "countered") {
+    info = "Durch ein Gegenangebot ersetzt.";
+  } else info = { declined: "Abgelehnt.", withdrawn: "Zurückgezogen.", cancelled: "Abgebrochen." }[t.status] || "";
+  $("#sheetTitle").textContent = `Tausch mit ${name}`;
+  $("#sheetBody").innerHTML = `
+    <div class="panel"><div class="tc-top"><strong>${t.status === "open" ? (role === "to" ? `Angebot von ${esc(name)}` : "Dein Angebot") : t.status === "accepted" ? "Tausch vereinbart" : t.status === "done" ? "Tausch abgeschlossen" : "Tauschangebot"}</strong><span class="spill ${cls}">${label}</span></div><div class="small">${info}</div>
+      ${t.note ? `<div class="tnote">„${esc(t.note)}“<span class="small"> – ${t.from === me.uid ? "du" : esc(name)}</span></div>` : ""}</div>
+    <div class="panel"><div class="tc-head"><strong>Du bekommst</strong><span class="small num">${fmt(sumItems(get))}</span></div>${list(get)}</div>
+    <div class="panel"><div class="tc-head"><strong>Du gibst</strong><span class="small num">${fmt(sumItems(give))}</span></div>${list(give)}</div>
+    <div class="form-err" id="tdErr"></div>
+    ${actions}`;
+}
+function renderTradeBadgeExtra(){ return trades.filter(needsMe).length; }
+
+/* ===== Ereignisse im Fenster ===== */
+$("#sheetBody").addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if ($("#sheetBody")._tc && tc) {
+    if (t.dataset.tcpick) { tc.pick = t.dataset.tcpick; tc.q = ""; renderComposer(); $("#sheetBody").scrollTop = 0; return; }
+    if (t.dataset.tcback) { tc.pick = null; renderComposer(); return; }
+    if (t.dataset.tcadd) {
+      const src = tc.pick === "get" ? theirItems() : collection, en = src.find(x => x.key === t.dataset.tcadd);
+      if (en) (tc.pick === "get" ? tc.get : tc.give).push(toItem(en, 1));
+      tc.pick = null; renderComposer(); return;
+    }
+    if (t.dataset.tcrm) { const k = t.dataset.side; tc[k] = tc[k].filter(i => i.key !== t.dataset.tcrm); renderComposer(); return; }
+    if (t.dataset.tcq) {
+      const it = tc[t.dataset.side].find(i => i.key === t.dataset.key);
+      if (it) it.qty = Math.max(1, Math.min(availOf(t.dataset.side, it.key) || 1, it.qty + Number(t.dataset.tcq)));
+      renderComposer(); return;
+    }
+    if (t.dataset.tcsuggest) { suggestBalance(); return; }
+    if (t.dataset.tcsend) {
+      t.disabled = true;
+      try { await sendTrade(); } catch (x) { const b = $("#tcErr"); if (b) b.textContent = x.message || "Senden hat nicht geklappt."; t.disabled = false; }
+      return;
+    }
+  }
+  if (t.dataset.tdo) {
+    const tr = trades.find(x => x.id === openTradeId); if (!tr) return;
+    if (t.dataset.tdo === "cancel" && tradeConfirm !== "cancel") { tradeConfirm = "cancel"; renderTradeDetail(); return; }
+    t.disabled = true;
+    try { await doTrade(t.dataset.tdo, tr); }
+    catch (x) { const b = $("#tdErr"); if (b) b.textContent = x.message || "Das hat nicht geklappt."; t.disabled = false; }
+    return;
+  }
+  if (t.dataset.tcfrom) {
+    const items = (fr.colls[t.dataset.tcfrom] || []).filter(x => x.cardId === t.dataset.tccard).sort((a, b) => (b.trade || 0) - (a.trade || 0) || b.qty - a.qty);
+    closeSheet(); openComposer(t.dataset.tcfrom, { get: items.length ? [toItem(items[0], 1)] : [] });
+  }
+});
+$("#sheetBody").addEventListener("input", e => {
+  if (!tc) return;
+  if (e.target.id === "tcNote") tc.note = e.target.value;
+  if (e.target.id === "tcQ") { tc.q = e.target.value; const l = $("#tcList"); if (l) l.innerHTML = pickerRows(); }
+});
+
 /* ---------- Datenschutzhinweise ---------- */
 function openPrivacy(){
   const op = window.APP_OPERATOR || {}, hasOp = op.name && op.email && !/DEIN/i.test(op.name + op.email);
@@ -2844,6 +3248,8 @@ function openPrivacy(){
     <h3>Freunde</h3>
     <p>Freundschaften entstehen nur, wenn eine Anfrage angenommen wird. Bestätigte Freunde sehen deinen Nutzernamen und deine Sammlung – einschließlich Tauschordner, Mengen, Varianten und Grading-Einschätzungen. Deine E-Mail-Adresse sieht niemand. Gespeichert werden außerdem die Freundschaften und offenen Anfragen. Entfernst du einen Freund, sieht er deine Sammlung sofort nicht mehr. Beim Löschen deines Kontos werden auch alle Freundschaften gelöscht.</p>
     <p>Alle angemeldeten Mitglieder können über einen Nutzernamen prüfen, ob es ihn gibt, um eine Anfrage zu senden.</p>
+    <h3>Tauschangebote</h3>
+    <p>Ein Tauschangebot enthält die ausgewählten Karten beider Seiten, eine optionale Nachricht, den Status und die Bestätigungen. Sichtbar ist es nur für die beiden Beteiligten. Nach dem Abschluss bucht die App die Karten in beiden Sammlungen um. Angebote bleiben als Verlauf gespeichert, bis eines der beiden Konten gelöscht wird; dabei werden alle Angebote des gelöschten Kontos entfernt. Die Übergabe der Karten selbst findet außerhalb der App statt.</p>
     <p>Die Daten bleiben gespeichert, bis du dein Konto löschst (Konto › Konto löschen). Dann werden Profil, Nutzername und Online-Sammlung sofort entfernt.</p>
     <h3>Dienste, die die App beim Benutzen aufruft</h3>
     <p>Dabei wird technisch bedingt deine IP-Adresse an den jeweiligen Anbieter übertragen (Art. 6 Abs. 1 lit. f DSGVO – ohne diese Abrufe funktioniert die App nicht):</p>
