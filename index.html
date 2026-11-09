@@ -57,7 +57,7 @@ main{flex:1;min-height:0;position:relative}
 .eyebrow{font:600 12px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 
 /* Tab bar */
-nav.tabs{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);
+nav.tabs{display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);
   padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
 nav.tabs button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;
   font-size:12px;font-weight:600;color:var(--muted)}
@@ -241,7 +241,29 @@ a{color:var(--accent)}
 .form-err:empty{display:none}
 .btn.danger{background:var(--accent);border-color:var(--accent)}
 .link-danger{color:var(--accent);background:none;border-color:transparent}
+.check{display:flex;gap:10px;align-items:center;font-weight:600}
+.check input{width:20px;height:20px;accent-color:var(--accent)}
 .inline-link{background:none;border:0;padding:0;color:var(--accent);font:inherit;text-decoration:underline}
+nav.tabs button{position:relative}
+.tab-badge{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--accent);color:var(--accent-fg);font:700 11px/18px var(--mono)}
+.friend-row{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;text-align:left;width:100%}
+.friend-row .avatar{width:44px;height:44px}
+.avatar.muted{background:var(--surface-2);color:var(--muted)}
+.fr-info{min-width:0}
+.fr-info strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fr-act{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.fr-act .btn{min-height:36px;padding:7px 10px;font-size:14px}
+.pill{font:700 12px/1 var(--mono);background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good);padding:6px 8px;border-radius:99px;white-space:nowrap}
+.add-row{display:flex;gap:8px}
+#tradeBody > .section-title{margin-top:22px}
+#tradeBody > .sets + .section-title{margin-top:22px}
+.add-row input{flex:1;min-width:0}
+.tile .qty.soft{background:var(--surface-2);color:var(--fg)}
+.tile .need{position:absolute;left:4px;bottom:4px;z-index:1;background:var(--good);color:#fff;font:700 10px/1 var(--mono);padding:4px 6px;border-radius:99px}
+.tile .frdot{position:absolute;left:4px;top:4px;display:inline-flex;align-items:center;gap:3px;background:var(--good);color:#fff;font:700 10px/1 var(--mono);padding:3px 6px;border-radius:99px}
+.tile .frdot svg{width:11px;height:11px}
+.panel.highlight{border-color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
+.trade-line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-left:10px;border-left:2px solid var(--line);margin-top:-4px}
 .footer-link{display:block;margin:28px auto 8px;background:none;border:0;color:var(--muted);font-size:14px;text-decoration:underline}
 .privacy h3{font-size:18px;font-weight:800;margin-top:6px}
 .privacy p,.privacy ul{margin:0;line-height:1.5;max-width:65ch}
@@ -406,6 +428,16 @@ a{color:var(--accent)}
     </div>
   </section>
 
+  <!-- TAUSCHEN -->
+  <section class="view" id="view-trade" aria-label="Tauschen" hidden>
+    <div class="view-head"><h1>Tauschen</h1></div>
+    <div class="filters" id="tradeTabs" role="tablist">
+      <button class="chip" data-tview="friends" aria-pressed="true">Freunde</button>
+      <button class="chip" data-tview="folder" aria-pressed="false">Mein Tauschordner</button>
+    </div>
+    <div id="tradeBody"></div>
+  </section>
+
   <!-- SEARCH -->
   <section class="view" id="view-search" aria-label="Suchen" hidden>
     <div class="view-head">
@@ -431,6 +463,8 @@ a{color:var(--accent)}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="16" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/></svg>Sammlung</button>
   <button role="tab" data-tab="grading" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v4h6V3M9 13l2 2 4-4"/></svg>Grading</button>
+  <button role="tab" data-tab="trade" aria-selected="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>Tauschen<span class="tab-badge" id="tradeBadge" hidden></span></button>
   <button role="tab" data-tab="search" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Suchen</button>
 </nav>
@@ -518,7 +552,7 @@ function migrate(list){
     const key = `${lang}|${x.cardId}|${variant}`;
     const prev = map.get(key);
     if (prev) prev.qty += x.qty || 1;
-    else map.set(key, { ...x, lang, variant, key, setId: x.setId || setIdOf(x.cardId), qty: x.qty || 1 });
+    else map.set(key, { ...x, lang, variant, key, setId: x.setId || setIdOf(x.cardId), qty: x.qty || 1, trade: Math.max(0, Math.min(x.trade || 0, x.qty || 1)) });
   }
   return [...map.values()];
 }
@@ -816,7 +850,9 @@ $("#photoInput").addEventListener("change", async e => {
 /* ---------- Sheet ---------- */
 let sheetCard = null;   // { id, lg }
 const sheetOpen = () => !$("#sheet").hidden;
+var sheetGen = 0;
 function openSheet(title, html){
+  sheetGen++;
   $("#sheetBody")._acct = false;
   $("#sheetTitle").textContent = title; $("#sheetBody").innerHTML = html;
   $("#scrim").hidden = false; $("#sheet").hidden = false;
@@ -824,14 +860,17 @@ function openSheet(title, html){
   $("#sheetBody").scrollTop = 0;
 }
 function closeSheet(){
+  if ($("#sheetBody")._lock) return;
+  const gen = sheetGen;
   $("#scrim").classList.remove("open"); $("#sheet").classList.remove("open");
-  setTimeout(() => { $("#scrim").hidden = true; $("#sheet").hidden = true; }, 220);
+  // Nur ausblenden, wenn inzwischen kein neues Fenster geöffnet wurde
+  setTimeout(() => { if (gen === sheetGen) { $("#scrim").hidden = true; $("#sheet").hidden = true; } }, 220);
   sheetCard = null;
   cooldownUntil = Date.now() + 4000; lastParsed = null;
   if (openSet) renderSetDetail();
 }
-$("#sheetClose").addEventListener("click", closeSheet);
-$("#scrim").addEventListener("click", closeSheet);
+$("#sheetClose").addEventListener("click", () => closeSheet());
+$("#scrim").addEventListener("click", () => { if (!$("#sheetBody")._lock) closeSheet(); });
 
 function openCandidates(cands, display, lg){
   openSheet(`${cands.length} Karten mit ${display}`, `
@@ -909,9 +948,13 @@ function renderCardSheet(card){
       ${owned.map(e => `<div class="owned-line">
           <div><strong>${badge(e.lang)} ${VARIANTS[e.variant] || e.variant}</strong><div class="small num">${e.price != null ? fmt(e.price * e.qty) : ""}</div></div>
           <div class="stepper"><button data-dec="${esc(e.key)}" aria-label="Weniger">−</button><span class="num">${e.qty}×</span><button data-inc="${esc(e.key)}" aria-label="Mehr">+</button></div>
+        </div>
+        <div class="trade-line"><span class="small">Zum Tausch</span>
+          <div class="stepper"><button data-tdec="${esc(e.key)}" aria-label="Weniger zum Tausch" ${(e.trade || 0) <= 0 ? "disabled" : ""}>−</button><span class="num">${e.trade || 0}×</span><button data-tinc="${esc(e.key)}" aria-label="Mehr zum Tausch" ${(e.trade || 0) >= e.qty ? "disabled" : ""}>+</button></div>
         </div>`).join("")}
       <button class="btn primary block" data-add="${esc(card.id)}">${LANGS[addLang]} · ${VARIANTS[selVariant]} hinzufügen</button>
     </div>
+    <div id="friendsBox">${friendsPanel(card)}</div>
     <div id="versionsBox"></div>
     <a class="note" href="https://www.cardmarket.com/de/Pokemon/Products/Search?searchString=${encodeURIComponent(card.name)}" target="_blank" rel="noopener">Auf Cardmarket ansehen ↗</a>
     <p class="note">Preise von Cardmarket über TCGdex. Der Trendpreis gilt für Karten in gutem Zustand (Near Mint).</p>`;
@@ -981,7 +1024,13 @@ $("#sheetBody").addEventListener("click", e => {
     const key = t.dataset.inc || t.dataset.dec;
     const entry = collection.find(x => x.key === key); if (!entry) return;
     entry.qty += t.dataset.inc ? 1 : -1;
+    if ((entry.trade || 0) > entry.qty) entry.trade = Math.max(0, entry.qty);
     if (entry.qty <= 0) collection = collection.filter(x => x.key !== key);
+    saveCollection(); renderCardSheet(card);
+  }
+  if (t.dataset.tinc || t.dataset.tdec) {
+    const entry = collection.find(x => x.key === (t.dataset.tinc || t.dataset.tdec)); if (!entry) return;
+    entry.trade = Math.max(0, Math.min(entry.qty, (entry.trade || 0) + (t.dataset.tinc ? 1 : -1)));
     saveCollection(); renderCardSheet(card);
   }
 });
@@ -1163,6 +1212,7 @@ function renderSetDetail(){
   let cards = allCards;
   if (setFilter === "owned") cards = cards.filter(c => qty[c.id]);
   if (setFilter === "missing") cards = cards.filter(c => !qty[c.id]);
+  if (setFilter === "friends") cards = cards.filter(c => !qty[c.id] && ownerIdx.has(c.id));
   if (setSort === "name") cards = [...cards].sort((a, b) => a.name.localeCompare(b.name, "de"));
   if (setSort === "price-desc" || setSort === "price-asc") {
     const dir = setSort === "price-desc" ? -1 : 1;
@@ -1190,6 +1240,8 @@ function renderSetDetail(){
       ${loading ? `<div class="loadbar"><i style="width:${priceLoad.done / priceLoad.total * 100}%"></i></div><div class="small num">Preise ${priceLoad.done}/${priceLoad.total} geladen</div>` : ""}
       ${!loading && noPrice ? `<div class="small">${noPrice} Karten ohne Preisangabe sind nicht eingerechnet.</div>` : ""}
       <div class="small">Summe der Cardmarket-Trendpreise, jeweils günstigste Variante.</div>
+      ${ownerIdx.size ? (() => { const withF = missing.filter(c => ownerIdx.has(c.id)), inT = withF.filter(c => ownerIdx.get(c.id).some(o => o.trade > 0));
+        return withF.length ? `<div class="hint ok"><strong>${withF.length}</strong> der fehlenden Karten haben deine Freunde${inT.length ? `, <strong>${inT.length}</strong> davon im Tauschordner` : ""}. Grün markiert.</div>` : ""; })() : ""}
     </div>`;
   }
   const sortLoading = (setSort.startsWith("price") && priceLoad?.running)
@@ -1206,7 +1258,7 @@ function renderSetDetail(){
       ${total ? `<div class="bar ${pct >= 100 ? "done" : ""}"><i style="width:${pct}%"></i></div>` : ""}
     </div>
     <div class="set-tools">
-      <div class="filters">${[["all","Alle"],["owned","Vorhanden"],["missing","Fehlend"]].map(([k,l]) => `<button class="chip" data-filter="${k}" aria-pressed="${setFilter === k}">${l}</button>`).join("")}</div>
+      <div class="filters">${[["all","Alle"],["owned","Vorhanden"],["missing","Fehlend"], ...(ownerIdx.size ? [["friends","Bei Freunden"]] : [])].map(([k,l]) => `<button class="chip" data-filter="${k}" aria-pressed="${setFilter === k}">${l}</button>`).join("")}</div>
       <select id="setSortSel" aria-label="Karten sortieren">
         <option value="number"${setSort === "number" ? " selected" : ""}>Nummer</option>
         <option value="price-desc"${setSort === "price-desc" ? " selected" : ""}>Preis absteigend</option>
@@ -1222,6 +1274,7 @@ function renderSetDetail(){
         return `<button class="tile ${qty[c.id] ? "" : "missing"}" data-card="${esc(c.id)}">
           <div class="img">${cardImg(c.image, c.id, c.localId, { alt: c.name, lg })}</div>
           ${qty[c.id] ? `<span class="qty">${qty[c.id]}×</span>` : ""}
+          ${!qty[c.id] && ownerIdx.has(c.id) ? `<span class="frdot" title="Bei Freunden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3.1 2.5 3.5 5.2"/></svg>${ownerIdx.get(c.id).length}</span>` : ""}
           <span class="cap num">${esc(c.localId)} · ${esc(c.name)}</span>
           ${p != null ? `<span class="price">${fmt(p)}</span>` : ""}</button>`;
       }).join("")}</div>` : `<div class="empty">${setFilter === "missing" ? "Set vollständig – Glückwunsch!" : "Keine Karten in dieser Auswahl."}</div>`}`;
@@ -1229,7 +1282,7 @@ function renderSetDetail(){
 $("#setDetail").addEventListener("click", e => {
   if (e.target.closest("#backToSets")) { closeSetDetail(); return; }
   const f = e.target.closest("[data-filter]");
-  if (f) { setFilter = f.dataset.filter; if (setFilter === "missing") ensureSetPrices(); renderSetDetail(); return; }
+  if (f) { setFilter = f.dataset.filter; if (setFilter === "missing" || setFilter === "friends") ensureSetPrices(); renderSetDetail(); return; }
   const c = e.target.closest("[data-card]"); if (c) openCard(c.dataset.card, openSet.lg);
 });
 $("#setDetail").addEventListener("change", e => {
@@ -2150,8 +2203,10 @@ async function onAuth(user){
     if (!needUsername) await startSync();
   } else {
     sync = { state: "off", at: null, msg: "" };
+    stopFriends();
   }
   authReady = true;
+  renderTrade();
   renderAccountUi();
   if (sheetOpen() && $("#sheetBody")._acct) renderAccountSheet();
 }
@@ -2189,12 +2244,17 @@ async function startSync(){
   setSync("syncing");
   try {
     const ref = cloudRef(), snap = await ref.get();
-    // Erstes Anmelden auf diesem Gerät oder ungesicherte Änderungen: zusammenführen statt überschreiben
-    const firstOnDevice = store.get("ks.syncUid", null) !== me.uid || store.get("ks.dirty", false);
+    const sameUser = store.get("ks.syncUid", null) === me.uid;
+    // Ungesicherte Änderungen desselben Nutzers: zusammenführen statt überschreiben
+    let merge = sameUser && store.get("ks.dirty", false) && collection.length > 0;
+    // Karten ohne Konto auf diesem Gerät: nur nach Rückfrage übernehmen
+    if (!sameUser && collection.length && snap.exists) {
+      merge = (await askLocalMerge(collection.length)) === "merge";
+      if (!merge) { collection = []; gradings = {}; }
+    }
     if (!snap.exists) {
       await ref.set(cloudPayload());
-    } else if (firstOnDevice && collection.length) {
-      // Erstes Anmelden auf diesem Gerät: lokale und Cloud-Sammlung zusammenführen
+    } else if (merge) {
       const cloud = snap.data();
       const merged = mergeCollections(migrate(cloud.items || []), collection);
       const before = (cloud.items || []).length;
@@ -2207,6 +2267,7 @@ async function startSync(){
     }
     store.set("ks.syncUid", me.uid); store.set("ks.dirty", false);
     setSync("ok");
+    startFriends();
     unsubCloud = ref.onSnapshot(s => {
       if (!s.exists || s.metadata.hasPendingWrites) return;
       applyCloud(s.data()); setSync("ok");
@@ -2214,6 +2275,62 @@ async function startSync(){
   } catch (e) {
     setSync(navigator.onLine === false ? "offline" : "error", e?.message);
   }
+}
+/** Fragt, ob Karten, die ohne Konto auf diesem Gerät liegen, ins Konto übernommen werden. */
+function askLocalMerge(n){
+  return new Promise(resolve => {
+    openSheet("Karten auf diesem Gerät", `<div class="panel">
+      <strong>Auf diesem Gerät liegen ${n} ${n === 1 ? "Karteneintrag" : "Karteneinträge"} ohne Konto.</strong>
+      <div class="small">Sind das deine Karten, kannst du sie zu deinem Konto hinzufügen. Gehören sie jemand anderem, nimm „Nicht übernehmen“ – dann werden sie von diesem Gerät entfernt und deine Online-Sammlung geladen.</div>
+      <button class="btn primary block" data-merge="merge">Zu meinem Konto hinzufügen</button>
+      <button class="btn block" data-merge="discard">Nicht übernehmen</button>
+    </div>`);
+    $("#sheetBody")._lock = true;
+    $("#sheetClose").hidden = true;
+    const onClick = e => {
+      const b = e.target.closest("[data-merge]"); if (!b) return;
+      $("#sheetBody").removeEventListener("click", onClick);
+      $("#sheetBody")._lock = false; $("#sheetClose").hidden = false;
+      closeSheet(); resolve(b.dataset.merge);
+    };
+    $("#sheetBody").addEventListener("click", onClick);
+  });
+}
+/** Entfernt Sammlung, Grading-Einschätzungen und Konto-Bezug von diesem Gerät. */
+function clearLocalData(){
+  collection = []; gradings = {};
+  store.set("ks.collection", []); store.set("ks.gradings", {});
+  store.set("ks.syncUid", null); store.set("ks.dirty", false);
+  if (openSet) closeSetDetail();
+  if (typeof restartGrading === "function" && gr) restartGrading();
+  renderCollection();
+}
+/** Noch nicht hochgeladene Änderungen sofort sichern. Liefert false, wenn das nicht ging. */
+async function flushPush(){
+  if (!me || !unsubCloud || !store.get("ks.dirty", false)) return true;
+  clearTimeout(pushTimer);
+  try {
+    await Promise.race([cloudRef().set(cloudPayload()), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000))]);
+    store.set("ks.dirty", false); setSync("ok"); return true;
+  } catch { return false; }
+}
+async function logout(force = false){
+  if (!force && !(await flushPush())) {
+    acctErr = "";
+    $("#sheetBody").innerHTML = `<div class="panel">
+      <strong>Nicht alles ist gesichert</strong>
+      <div class="small">Einige Änderungen konnten nicht hochgeladen werden – vermutlich bist du offline. Wenn du dich jetzt abmeldest, gehen sie verloren.</div>
+      <button class="btn primary block" data-acct="cancel">Angemeldet bleiben</button>
+      <button class="btn block link-danger" data-acct="logoutForce">Trotzdem abmelden</button>
+    </div>`;
+    return;
+  }
+  if (unsubCloud) { unsubCloud(); unsubCloud = null; }
+  clearTimeout(pushTimer);
+  stopFriends();
+  clearLocalData();
+  await fb.auth.signOut();
+  acctMode = "login"; closeSheet(); toast("Abgemeldet – die Sammlung wurde von diesem Gerät entfernt");
 }
 function schedulePush(){
   if (!fb || !me || needUsername || applyingRemote || !unsubCloud) return;
@@ -2296,8 +2413,10 @@ function renderAccountSheet(){
   } else if (me) {
     html = acctMode === "delete" ? `<form class="panel acct-form" data-form="delete">
         <strong>Konto löschen</strong>
-        <div class="small">Dein Konto und die Online-Kopie deiner Sammlung werden endgültig gelöscht. Auf diesem iPhone bleibt die Sammlung erhalten.</div>
+        <div class="small">Dein Konto, deine Freundschaften und die Online-Kopie deiner Sammlung werden endgültig gelöscht.</div>
         <input id="fPw" type="password" autocomplete="current-password" placeholder="Passwort zur Bestätigung" required>
+        <label class="check"><input type="checkbox" id="fWipe" checked> Sammlung auch von diesem Gerät entfernen</label>
+        <div class="small">Ohne Haken bleibt die Sammlung ohne Konto auf diesem Gerät – dann ist sie die einzige Kopie.</div>
         <div class="form-err" id="fErr"></div>
         <button class="btn primary block danger" type="submit">Endgültig löschen</button>
         <button class="btn block" type="button" data-acct="cancel">Abbrechen</button>
@@ -2314,7 +2433,8 @@ function renderAccountSheet(){
         </div>
         <div class="panel">
           <strong>Freunde & Tauschen</strong>
-          <div class="small">Kommt als Nächstes: Freunde hinzufügen, Tauschordner und „Wer hat die Karte?“.</div>
+          <div class="small">Dein Nutzername für Freundesanfragen: <strong class="num">${esc(me.username)}</strong></div>
+          <button class="btn block" data-acct="trade">Zu Freunden & Tauschordner</button>
         </div>
         <button class="btn block" data-acct="privacy">Datenschutzhinweise</button>
         <button class="btn block" data-acct="logout">Abmelden</button>
@@ -2346,7 +2466,7 @@ function renderAccountSheet(){
         ${reg ? `<div class="small">Mit dem Erstellen des Kontos werden deine Daten wie in den <button type="button" class="inline-link" data-acct="privacy">Datenschutzhinweisen</button> beschrieben verarbeitet.</div>` : ""}
         ${reg ? "" : `<button class="btn block" type="button" data-acct="reset">Passwort vergessen?</button>`}
       </form>
-      <p class="note">Deine Sammlung auf diesem iPhone bleibt erhalten und wird beim ersten Anmelden mit deinem Konto zusammengeführt.</p>
+      <p class="note">Liegen auf diesem Gerät schon Karten, fragt die App beim Anmelden, ob sie in dein Konto übernommen werden sollen. Beim Abmelden wird die Sammlung vom Gerät entfernt – sie bleibt in deinem Konto gesichert.</p>
       <button class="btn block" data-acct="privacy">Datenschutzhinweise</button>`;
   }
   body.innerHTML = html;
@@ -2420,13 +2540,16 @@ $("#sheetBody").addEventListener("submit", async e => {
       const user = fb.auth.currentUser;
       await user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(user.email, $("#fPw").value));
       if (unsubCloud) { unsubCloud(); unsubCloud = null; }
-      const uid = user.uid, name = me.username;
+      const uid = user.uid, name = me.username, wipe = $("#fWipe")?.checked !== false;
+      const fs = await fb.db.collection("friendships").where("users", "array-contains", uid).get();
+      for (const d of fs.docs) await d.ref.delete();
+      stopFriends();
       await cloudRef().delete();
       if (name) await fb.db.collection("usernames").doc(name).delete();
       await fb.db.collection("users").doc(uid).delete();
       await user.delete();
-      store.set("ks.syncUid", null);
-      acctMode = "login"; closeSheet(); toast("Konto gelöscht");
+      if (wipe) clearLocalData(); else { store.set("ks.syncUid", null); store.set("ks.dirty", false); }
+      acctMode = "login"; closeSheet(); toast(wipe ? "Konto und Sammlung gelöscht" : "Konto gelöscht – die Sammlung bleibt auf diesem Gerät");
     }
   } catch (x) {
     acctErr = authMsg(x);
@@ -2437,16 +2560,274 @@ $("#sheetBody").addEventListener("click", async e => {
   const b = e.target.closest("[data-acct]"); if (!b) return;
   const a = b.dataset.acct; acctErr = "";
   if (a === "privacy") { openPrivacy(); return; }
+  if (a === "trade") { closeSheet(); showTab("trade"); return; }
   if (a === "login" || a === "register" || a === "reset") { acctMode = a; acctDraft = {}; renderAccountSheet(); }
   else if (a === "delete") { acctMode = "delete"; renderAccountSheet(); }
   else if (a === "cancel") { acctMode = "login"; renderAccountSheet(); }
   else if (a === "sync") { if (unsubCloud) { unsubCloud(); unsubCloud = null; } await startSync(); }
-  else if (a === "logout") {
-    if (unsubCloud) { unsubCloud(); unsubCloud = null; }
-    store.set("ks.syncUid", null);
-    await fb.auth.signOut(); acctMode = "login"; closeSheet(); toast("Abgemeldet – deine Sammlung bleibt auf diesem iPhone");
-  }
+  else if (a === "logout") { b.disabled = true; await logout(false); }
+  else if (a === "logoutForce") { await logout(true); }
 });
+/* ---------- Freunde & Tauschen ---------- */
+var fr = { all: [], profiles: {}, colls: {}, collUnsubs: {}, unsubQ: null, ready: false };
+var ownerIdx = new Map();            // cardId -> [{ uid, name, qty, trade, langs, variants }]
+var tradeView = "friends", openFriend = null, friendTab = "trade", friendMsg = "", friendConfirm = null;
+const pairId = (a, b) => a < b ? `${a}_${b}` : `${b}_${a}`;
+const otherUid = f => f.users.find(u => u !== me?.uid);
+const friendName = uid => fr.profiles[uid]?.username || "…";
+const acceptedFriends = () => fr.all.filter(f => f.status === "accepted").map(otherUid);
+
+function startFriends(){
+  stopFriends();
+  if (!fb || !me?.username) return;
+  fr.unsubQ = fb.db.collection("friendships").where("users", "array-contains", me.uid).onSnapshot(qs => {
+    fr.all = qs.docs.map(d => ({ id: d.id, ...d.data() }));
+    fr.ready = true;
+    const accepted = new Set(acceptedFriends());
+    for (const f of fr.all) loadProfile(otherUid(f));
+    for (const uid of accepted) if (!fr.collUnsubs[uid]) {
+      fr.collUnsubs[uid] = fb.db.collection("collections").doc(uid).onSnapshot(s => {
+        fr.colls[uid] = s.exists ? migrate(s.data().items || []) : [];
+        rebuildOwners();
+      }, () => { if (fr.collUnsubs[uid]) { fr.colls[uid] = []; rebuildOwners(); } });
+    }
+    for (const uid of Object.keys(fr.collUnsubs)) if (!accepted.has(uid)) {
+      fr.collUnsubs[uid](); delete fr.collUnsubs[uid]; delete fr.colls[uid];
+    }
+    rebuildOwners();
+  }, () => { fr.ready = true; renderTrade(); });
+}
+function stopFriends(){
+  if (fr.unsubQ) fr.unsubQ();
+  for (const u of Object.values(fr.collUnsubs)) u();
+  fr = { all: [], profiles: {}, colls: {}, collUnsubs: {}, unsubQ: null, ready: false };
+  ownerIdx = new Map(); openFriend = null;
+  renderTradeBadge();
+}
+async function loadProfile(uid){
+  if (!uid || fr.profiles[uid]) return;
+  fr.profiles[uid] = { username: "…" };
+  try { const s = await fb.db.collection("users").doc(uid).get(); fr.profiles[uid] = { username: s.exists ? s.data().username : "Unbekannt" }; }
+  catch { fr.profiles[uid] = { username: "Unbekannt" }; }
+  renderTrade();
+}
+function rebuildOwners(){
+  ownerIdx = new Map();
+  for (const [uid, items] of Object.entries(fr.colls)) {
+    const per = new Map();
+    for (const e of items) {
+      const o = per.get(e.cardId) || { uid, qty: 0, trade: 0, langs: new Set(), variants: new Set(), price: e.price, name: e.name, localId: e.localId, image: e.image, setId: e.setId, setName: e.setName, lang: e.lang };
+      o.qty += e.qty; o.trade += Math.min(e.trade || 0, e.qty); o.langs.add(e.lang); o.variants.add(e.variant);
+      if ((e.price || 0) > (o.price || 0)) o.price = e.price;
+      per.set(e.cardId, o);
+    }
+    for (const [cid, o] of per) { if (!ownerIdx.has(cid)) ownerIdx.set(cid, []); ownerIdx.get(cid).push(o); }
+  }
+  for (const list of ownerIdx.values()) list.sort((a, b) => b.trade - a.trade || b.qty - a.qty);
+  renderTrade(); renderTradeBadge();
+  if (openSet) renderSetDetail();
+  const card = $("#sheetBody")._card;
+  if (sheetOpen() && card && !$("#sheetBody")._acct) { const box = $("#friendsBox"); if (box) box.innerHTML = friendsPanel(card); }
+}
+function renderTradeBadge(){
+  const n = fr.all.filter(f => f.status === "pending" && f.requester !== me?.uid).length;
+  const b = $("#tradeBadge"); if (!b) return;
+  b.textContent = n; b.hidden = !n;
+}
+
+/* Freundschaft anfragen, annehmen, entfernen */
+async function addFriend(raw){
+  const name = raw.trim().toLowerCase().replace(/^@/, "");
+  if (!name) return;
+  if (name === me.username) throw new Error("Das bist du selbst.");
+  const u = await fb.db.collection("usernames").doc(name).get();
+  if (!u.exists) throw new Error(`Niemand heißt „${name}“. Prüf die Schreibweise.`);
+  const uid = u.data().uid, id = pairId(me.uid, uid), ref = fb.db.collection("friendships").doc(id);
+  const ex = await ref.get();
+  if (ex.exists) {
+    const f = ex.data();
+    if (f.status === "accepted") throw new Error(`Ihr seid schon befreundet.`);
+    if (f.requester === me.uid) throw new Error(`Deine Anfrage an ${name} läuft schon.`);
+    await ref.update({ status: "accepted" });          // Gegenseitige Anfrage = annehmen
+    return `Du bist jetzt mit ${name} befreundet.`;
+  }
+  const users = [me.uid, uid].sort();
+  await ref.set({ users, requester: me.uid, status: "pending", createdAt: fb.FieldValue.serverTimestamp() });
+  return `Anfrage an ${name} gesendet.`;
+}
+const acceptFriend = id => fb.db.collection("friendships").doc(id).update({ status: "accepted" });
+const removeFriendship = id => fb.db.collection("friendships").doc(id).delete();
+
+/* Tauschordner */
+const myTrade = () => collection.filter(e => (e.trade || 0) > 0);
+function takeDuplicates(){
+  let n = 0;
+  for (const e of collection) if (e.qty > 1 && (e.trade || 0) < e.qty - 1) { n += e.qty - 1 - (e.trade || 0); e.trade = e.qty - 1; }
+  saveCollection();
+  return n;
+}
+
+/* Karten-Kacheln für Freunde-Ansichten */
+function tradeTile(o, extra = "", inImg = ""){
+  return `<button class="tile" data-card="${esc(o.cardId)}" data-lg="${esc(o.lang || "de")}">
+    <div class="img">${cardImg(o.image, o.cardId, o.localId, { alt: o.name, lg: o.lang || "de" })}${inImg}</div>
+    ${extra}
+    <span class="cap">${esc(o.name)}</span>
+    <span class="cap num">${esc(o.setName || "")} · ${esc(o.localId)}</span>
+    ${o.price != null ? `<span class="price">${fmt(o.price)}</span>` : ""}
+  </button>`;
+}
+const ownedIds = () => new Set(collection.map(e => e.cardId));
+
+function renderTrade(){
+  const box = $("#tradeBody"); if (!box || $("#view-trade").hidden) return;
+  $$("[data-tview]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tview === tradeView)));
+  $("#tradeTabs").hidden = !!openFriend;
+  if (!cloudConfigured || !me?.username) {
+    box.innerHTML = `<div class="empty"><h2>Tauschen mit Freunden</h2>Melde dich an, um Freunde hinzuzufügen, deine doppelten Karten in den Tauschordner zu legen und zu sehen, wer die Karten hat, die dir fehlen.
+      ${cloudConfigured ? `<p><button class="btn primary" data-tact="login">Anmelden</button></p>` : ""}</div>`;
+    return;
+  }
+  if (openFriend) { box.innerHTML = friendDetailHtml(openFriend); return; }
+  if (tradeView === "folder") { box.innerHTML = folderHtml(); return; }
+
+  const incoming = fr.all.filter(f => f.status === "pending" && f.requester !== me.uid);
+  const outgoing = fr.all.filter(f => f.status === "pending" && f.requester === me.uid);
+  const mine = ownedIds();
+  const friendsList = fr.all.filter(f => f.status === "accepted").map(f => {
+    const uid = otherUid(f), items = fr.colls[uid];
+    const tradeN = items ? items.reduce((s, e) => s + Math.min(e.trade || 0, e.qty), 0) : 0;
+    const forMe = items ? new Set(items.filter(e => !mine.has(e.cardId)).map(e => e.cardId)).size : 0;
+    return { f, uid, items, tradeN, forMe };
+  }).sort((a, b) => b.forMe - a.forMe);
+  box.innerHTML = `
+    <form class="panel acct-form" id="addFriendForm">
+      <strong>Freund hinzufügen</strong>
+      <div class="add-row"><input id="friendName" autocapitalize="none" spellcheck="false" autocomplete="off" placeholder="Nutzername, z. B. max_sammelt" required><button class="btn primary" type="submit">Anfragen</button></div>
+      <div class="small">Dein Nutzername: <strong class="num">${esc(me.username)}</strong> – gib ihn an Freunde weiter.</div>
+      ${friendMsg ? `<div class="small" id="friendMsg">${esc(friendMsg)}</div>` : ""}
+    </form>
+    ${incoming.length ? `<div class="section-title"><h2>Anfragen</h2></div><div class="sets">${incoming.map(f => `<div class="friend-row">
+        <span class="avatar">${esc(friendName(otherUid(f))[0]?.toUpperCase() || "?")}</span>
+        <div class="fr-info"><strong>${esc(friendName(otherUid(f)))}</strong><div class="small">möchte mit dir befreundet sein</div></div>
+        <div class="fr-act"><button class="btn primary" data-accept="${esc(f.id)}">Annehmen</button><button class="btn" data-decline="${esc(f.id)}">Ablehnen</button></div>
+      </div>`).join("")}</div>` : ""}
+    <div class="section-title" style="margin-top:8px"><h2>Freunde</h2><span class="small">${friendsList.length}</span></div>
+    <div class="sets">${friendsList.length ? friendsList.map(x => `<button class="friend-row" data-friend="${esc(x.uid)}">
+        <span class="avatar">${esc(friendName(x.uid)[0]?.toUpperCase() || "?")}</span>
+        <div class="fr-info"><strong>${esc(friendName(x.uid))}</strong>
+          <div class="small">${x.items ? `${x.items.reduce((s, e) => s + e.qty, 0)} Karten · ${x.tradeN} im Tauschordner` : "lädt …"}</div></div>
+        ${x.forMe ? `<span class="pill">${x.forMe} fehlen dir</span>` : ""}
+      </button>`).join("") : `<div class="empty">Noch keine Freunde. Schick oben eine Anfrage – sobald sie angenommen ist, siehst du hier, welche Karten dein Freund hat.</div>`}</div>
+    ${outgoing.length ? `<div class="section-title" style="margin-top:8px"><h2>Gesendet</h2></div><div class="sets">${outgoing.map(f => `<div class="friend-row">
+        <span class="avatar muted">${esc(friendName(otherUid(f))[0]?.toUpperCase() || "?")}</span>
+        <div class="fr-info"><strong>${esc(friendName(otherUid(f)))}</strong><div class="small">wartet auf Bestätigung</div></div>
+        <div class="fr-act"><button class="btn" data-decline="${esc(f.id)}">Zurückziehen</button></div>
+      </div>`).join("")}</div>` : ""}`;
+}
+function folderHtml(){
+  const list = myTrade().sort((a, b) => (b.price || 0) - (a.price || 0));
+  const n = list.reduce((s, e) => s + e.trade, 0), value = list.reduce((s, e) => s + (e.price || 0) * e.trade, 0);
+  const dupes = collection.reduce((s, e) => s + Math.max(0, e.qty - 1 - (e.trade || 0)), 0);
+  return `<div class="summary">
+      <div class="eyebrow">Mein Tauschordner · für Freunde sichtbar</div>
+      <div class="total num">${n} ${n === 1 ? "Karte" : "Karten"}</div>
+      <div class="meta"><span>Wert ${fmt(value)}</span></div>
+      <div class="row-btns">
+        <button class="btn primary" data-tact="dupes" ${dupes ? "" : "disabled"}>Doppelte übernehmen${dupes ? ` (${dupes})` : ""}</button>
+        ${n ? `<button class="btn" data-tact="clear">${friendConfirm === "clear" ? "Wirklich leeren?" : "Ordner leeren"}</button>` : ""}
+      </div>
+      <div class="small">„Doppelte übernehmen“ legt von jeder Karte, die du mehrfach hast, alle bis auf eine in den Ordner. Einzelne Karten und die genaue Anzahl stellst du in der Kartenansicht unter „Zum Tausch“ ein.</div>
+    </div>
+    ${list.length ? `<div class="grid">${list.map(e => tradeTile(e, `<span class="qty">${e.trade}×</span>`)).join("")}</div>`
+      : `<div class="empty">Dein Tauschordner ist leer.</div>`}`;
+}
+function friendDetailHtml(uid){
+  const name = friendName(uid), items = fr.colls[uid] || [];
+  const f = fr.all.find(x => x.status === "accepted" && otherUid(x) === uid);
+  const mine = ownedIds();
+  const theirs = new Set(items.map(e => e.cardId));
+  const agg = new Map();
+  for (const e of items) {
+    const o = agg.get(e.cardId) || { ...e, qty: 0, trade: 0 };
+    o.qty += e.qty; o.trade += Math.min(e.trade || 0, e.qty); agg.set(e.cardId, o);
+  }
+  const all = [...agg.values()];
+  const lists = {
+    trade: all.filter(o => o.trade > 0),
+    forme: all.filter(o => !mine.has(o.cardId)),
+    forthem: myTrade().filter(e => !theirs.has(e.cardId))
+  };
+  const list = (friendTab === "forthem" ? lists.forthem : lists[friendTab]).slice().sort((a, b) => (b.price || 0) - (a.price || 0));
+  const tile = o => tradeTile(o, friendTab === "forthem" ? `<span class="qty">${o.trade}×</span>`
+    : (o.trade ? `<span class="qty">${o.trade}× Tausch</span>` : `<span class="qty soft">${o.qty}×</span>`),
+    friendTab !== "forthem" && !mine.has(o.cardId) ? `<span class="need">fehlt dir</span>` : "");
+  const empty = { trade: `${esc(name)} hat noch nichts in den Tauschordner gelegt.`, forme: `${esc(name)} hat keine Karte, die dir fehlt.`, forthem: `Nichts aus deinem Tauschordner fehlt ${esc(name)}.` }[friendTab];
+  return `<button class="back" data-tact="back">‹ Freunde</button>
+    <div class="panel acct-head">
+      <span class="avatar big">${esc(name[0]?.toUpperCase() || "?")}</span>
+      <div style="min-width:0"><h2 style="font-size:24px">${esc(name)}</h2><div class="small">${items.reduce((s, e) => s + e.qty, 0)} Karten · ${lists.trade.reduce((s, o) => s + o.trade, 0)} im Tauschordner</div></div>
+    </div>
+    <div class="filters">${[["trade", `Tauschordner (${lists.trade.length})`], ["forme", `Fehlt mir (${lists.forme.length})`], ["forthem", `Fehlt ${name} (${lists.forthem.length})`]]
+      .map(([k, l]) => `<button class="chip" data-ftab="${k}" aria-pressed="${friendTab === k}">${esc(l)}</button>`).join("")}</div>
+    ${friendTab === "forthem" ? `<p class="small" style="margin:0 0 12px">Karten aus deinem Tauschordner, die ${esc(name)} noch nicht hat – gute Tauschangebote.</p>` : ""}
+    ${list.length ? `<div class="grid">${list.map(tile).join("")}</div>` : `<div class="empty">${empty}</div>`}
+    <p class="note" style="margin-top:20px">Tausch-Angebote direkt in der App kommen in der nächsten Stufe. Bis dahin sprecht euch einfach ab.</p>
+    ${f ? `<button class="btn block link-danger" data-unfriend="${esc(f.id)}">${friendConfirm === f.id ? `Wirklich ${esc(name)} entfernen?` : "Freund entfernen"}</button>` : ""}`;
+}
+/* Panel „Bei deinen Freunden“ in der Kartenansicht */
+function friendsPanel(card){
+  if (!me?.username || !fr.ready || !acceptedFriends().length) return "";
+  const owners = ownerIdx.get(card.id) || [];
+  const iOwn = collection.some(e => e.cardId === card.id);
+  if (!owners.length) return `<div class="panel"><strong>Bei deinen Freunden</strong><div class="small">Keiner deiner Freunde hat diese Karte.</div></div>`;
+  return `<div class="panel ${iOwn ? "" : "highlight"}">
+    <strong>${iOwn ? "Bei deinen Freunden" : `${owners.length === 1 ? "Ein Freund hat" : owners.length + " Freunde haben"} diese Karte`}</strong>
+    ${owners.map(o => `<div class="owned-line">
+      <div><strong>${esc(friendName(o.uid))}</strong> ${[...o.langs].map(badge).join(" ")}
+        <div class="small">${o.qty}× · ${[...o.variants].map(v => VARIANTS[v] || v).join(", ")}</div></div>
+      ${o.trade ? `<span class="pill">${o.trade}× zum Tausch</span>` : `<span class="small">nicht im Tauschordner</span>`}
+    </div>`).join("")}
+    ${!iOwn ? `<div class="small">Frag nach einem Tausch – Angebote direkt in der App kommen in der nächsten Stufe.</div>` : ""}
+  </div>`;
+}
+
+/* Ereignisse */
+$("#tradeTabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tview]"); if (!b) return;
+  tradeView = b.dataset.tview; friendConfirm = null; friendMsg = ""; renderTrade();
+});
+$("#tradeBody").addEventListener("submit", async e => {
+  if (e.target.id !== "addFriendForm") return;
+  e.preventDefault();
+  const btn = e.target.querySelector("button[type=submit]"); btn.disabled = true;
+  try { friendMsg = await addFriend($("#friendName").value); }
+  catch (x) { friendMsg = x?.code === "permission-denied" ? "Das hat nicht geklappt. Bist du noch angemeldet?" : (x.message || "Das hat nicht geklappt."); }
+  btn.disabled = false; renderTrade();
+});
+$("#tradeBody").addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t) return;
+  try {
+    if (t.dataset.card) { openCard(t.dataset.card, t.dataset.lg); return; }
+    if (t.dataset.friend) { openFriend = t.dataset.friend; friendTab = "trade"; friendConfirm = null; renderTrade(); $("#view-trade").scrollTop = 0; return; }
+    if (t.dataset.ftab) { friendTab = t.dataset.ftab; renderTrade(); return; }
+    if (t.dataset.accept) { t.disabled = true; await acceptFriend(t.dataset.accept); toast("Freundschaft bestätigt"); return; }
+    if (t.dataset.decline) { t.disabled = true; await removeFriendship(t.dataset.decline); return; }
+    if (t.dataset.unfriend) {
+      if (friendConfirm !== t.dataset.unfriend) { friendConfirm = t.dataset.unfriend; renderTrade(); return; }
+      await removeFriendship(t.dataset.unfriend); openFriend = null; friendConfirm = null; toast("Freund entfernt"); renderTrade(); return;
+    }
+    const a = t.dataset.tact;
+    if (a === "back") { openFriend = null; friendConfirm = null; renderTrade(); }
+    else if (a === "login") { acctMode = "login"; openAccount(); }
+    else if (a === "dupes") { const n = takeDuplicates(); toast(n ? `${n} Karten in den Tauschordner gelegt` : "Keine weiteren Doppelten"); renderTrade(); }
+    else if (a === "clear") {
+      if (friendConfirm !== "clear") { friendConfirm = "clear"; renderTrade(); return; }
+      for (const x of collection) x.trade = 0; friendConfirm = null; saveCollection(); toast("Tauschordner geleert"); renderTrade();
+    }
+  } catch (x) { toast(x?.message || "Das hat nicht geklappt"); renderTrade(); }
+});
+
 /* ---------- Datenschutzhinweise ---------- */
 function openPrivacy(){
   const op = window.APP_OPERATOR || {}, hasOp = op.name && op.email && !/DEIN/i.test(op.name + op.email);
@@ -2460,7 +2841,9 @@ function openPrivacy(){
     <h3>Mit Konto</h3>
     <p>Gespeichert werden deine E-Mail-Adresse, dein Passwort (von Google verschlüsselt, für niemanden lesbar), dein Nutzername, der verwendete Einladungscode und deine Sammlung samt Grading-Einschätzungen. Zweck: Sicherung und Abgleich deiner Sammlung zwischen deinen Geräten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO – du nutzt diese Funktionen auf eigenen Wunsch.</p>
     <p>Die Daten liegen bei Google Firebase (Google Ireland Ltd. / Google LLC) im Rechenzentrum Frankfurt. Google verarbeitet sie als Auftragsverarbeiter. Eine Übermittlung in die USA ist nicht ausgeschlossen; sie ist über das EU-US Data Privacy Framework und Standardvertragsklauseln abgesichert.</p>
-    <p>Deine Sammlung kann derzeit nur von dir selbst abgerufen werden. Sollen später Freunde sie sehen können, wirst du vorher darüber informiert.</p>
+    <h3>Freunde</h3>
+    <p>Freundschaften entstehen nur, wenn eine Anfrage angenommen wird. Bestätigte Freunde sehen deinen Nutzernamen und deine Sammlung – einschließlich Tauschordner, Mengen, Varianten und Grading-Einschätzungen. Deine E-Mail-Adresse sieht niemand. Gespeichert werden außerdem die Freundschaften und offenen Anfragen. Entfernst du einen Freund, sieht er deine Sammlung sofort nicht mehr. Beim Löschen deines Kontos werden auch alle Freundschaften gelöscht.</p>
+    <p>Alle angemeldeten Mitglieder können über einen Nutzernamen prüfen, ob es ihn gibt, um eine Anfrage zu senden.</p>
     <p>Die Daten bleiben gespeichert, bis du dein Konto löschst (Konto › Konto löschen). Dann werden Profil, Nutzername und Online-Sammlung sofort entfernt.</p>
     <h3>Dienste, die die App beim Benutzen aufruft</h3>
     <p>Dabei wird technisch bedingt deine IP-Adresse an den jeweiligen Anbieter übertragen (Art. 6 Abs. 1 lit. f DSGVO – ohne diese Abrufe funktioniert die App nicht):</p>
@@ -2485,7 +2868,8 @@ $("#acctHintBtn").addEventListener("click", () => { acctMode = "register"; openA
 function showTab(name){
   if (name === "collection") { closeSetDetail(); loadAllSets(); }
   $$("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
-  ["scan","collection","grading","search"].forEach(t => $("#view-" + t).hidden = t !== name);
+  ["scan","collection","grading","trade","search"].forEach(t => $("#view-" + t).hidden = t !== name);
+  if (name === "trade") renderTrade();
   if (name === "grading") { if (!gr) openGrading(null); else renderGrading(); }
   else stopGradeCam();
   if (name === "scan") { if (store.get("ks.camOn", false)) startCamera(); }
