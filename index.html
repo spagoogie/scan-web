@@ -57,7 +57,7 @@ main{flex:1;min-height:0;position:relative}
 .eyebrow{font:600 12px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 
 /* Tab bar */
-nav.tabs{display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);
+nav.tabs{display:grid;grid-template-columns:repeat(6,1fr);background:var(--surface);border-top:1px solid var(--line);
   padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
 nav.tabs button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;
   font-size:12px;font-weight:600;color:var(--muted)}
@@ -297,6 +297,51 @@ nav.tabs button{position:relative}
 .confirms{display:flex;gap:16px;margin-top:8px;font-weight:600}
 .tnote{margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--bg);font-style:italic}
 .tiny-btn{min-height:32px;padding:5px 10px;font-size:13px}
+/* Profil */
+.avatar{position:relative;overflow:hidden}
+.avatar.pic{background:var(--surface-2);color:var(--fg)}
+.avatar.pic .ph{display:none}
+.avatar.pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 22%;transform:scale(1.9);transform-origin:50% 26%}
+.av-letter{position:absolute;inset:0;display:grid;place-items:center}
+.avatar.ring{outline:3px solid var(--good);outline-offset:2px;overflow:visible}
+.avatar.ring.pic{overflow:hidden;outline-offset:2px}
+.avatar.huge{width:92px;height:92px;font-size:40px;flex:none}
+.ring-dot{display:inline-block;width:12px;height:12px;border-radius:50%;border:3px solid var(--good);vertical-align:-1px}
+.prof-head{display:flex;gap:16px;align-items:center;margin:4px 0 16px}
+.prof-av{position:relative;flex:none}
+.av-edit{position:absolute;right:-4px;bottom:-4px;width:30px;height:30px;border-radius:50%;border:2px solid var(--bg);background:var(--accent);color:var(--accent-fg);font-size:14px;display:grid;place-items:center;padding:0}
+.prof-id{min-width:0;display:grid;gap:4px}
+.prof-id h2{font-size:30px;font-weight:900;overflow:hidden;text-overflow:ellipsis}
+.bio{background:none;border:0;padding:0;text-align:left;font-size:15px;color:var(--fg)}
+.bio.empty{color:var(--accent);font-weight:600}
+.stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.stat-grid > div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 8px;display:grid;gap:2px;text-align:center;min-width:0}
+.stat-grid b{font:800 20px/1.1 var(--display);font-stretch:85%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat-grid span{font-size:12px;color:var(--muted)}
+.prof-actions{margin-bottom:6px}
+.prof-actions .btn{flex:1}
+#profileBody .section-title{margin-top:20px}
+.showcase{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.sc-slot{position:relative;min-width:0}
+.sc-slot .tile{width:100%}
+.sc-rm{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;border:2px solid var(--bg);background:var(--fg);color:var(--bg);font-size:16px;line-height:1;padding:0;z-index:2}
+.small-rm{top:-4px;right:-4px}
+.sc-empty{aspect-ratio:63/88;border:2px dashed var(--line);border-radius:8px;background:none;display:grid;place-content:center;justify-items:center;gap:2px;color:var(--muted);font-size:12px}
+.sc-empty span{font-size:26px;line-height:1}
+.sc-empty.muted{border-style:solid;opacity:.5}
+.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rank-badge{position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:800 13px/1 var(--mono);color:#1a1300;background:#d9dbe4}
+.rank-badge.r1{background:var(--gold)}
+.rank-badge.r3{background:#d39a6a}
+.tile.noprice .price{display:none}
+.set-row.static img{width:64px;height:36px;object-fit:contain}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.badge-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:2px;text-align:center;opacity:.45}
+.badge-card.on{opacity:1;border-color:color-mix(in srgb,var(--gold) 60%,var(--line))}
+.badge-card .medal{font-size:22px;color:var(--gold)}
+.badge-card strong{font-size:14px}
+.prof-chips{margin-top:4px}
+.small-empty{padding:16px}
 .footer-link{display:block;margin:28px auto 8px;background:none;border:0;color:var(--muted);font-size:14px;text-decoration:underline}
 .privacy h3{font-size:18px;font-weight:800;margin-top:6px}
 .privacy p,.privacy ul{margin:0;line-height:1.5;max-width:65ch}
@@ -472,6 +517,11 @@ nav.tabs button{position:relative}
     <div id="tradeBody"></div>
   </section>
 
+  <!-- PROFIL -->
+  <section class="view" id="view-profile" aria-label="Profil" hidden>
+    <div id="profileBody"></div>
+  </section>
+
   <!-- SEARCH -->
   <section class="view" id="view-search" aria-label="Suchen" hidden>
     <div class="view-head">
@@ -499,6 +549,8 @@ nav.tabs button{position:relative}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="16" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/></svg>Sammlung</button>
   <button role="tab" data-tab="trade" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>Tauschen<span class="tab-badge" id="tradeBadge" hidden></span></button>
+  <button role="tab" data-tab="profile" aria-selected="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.6c1.3-2.4 3.4-3.6 5.8-3.6s4.5 1.2 5.8 3.6"/></svg>Profil</button>
   <button role="tab" data-tab="search" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Suchen</button>
 </nav>
@@ -590,7 +642,7 @@ function migrate(list){
   }
   return [...map.values()];
 }
-function saveCollection(){ store.set("ks.collection", collection); renderCollection(); schedulePush(); }
+function saveCollection(){ store.set("ks.collection", collection); renderCollection(); schedulePush(); if (typeof renderProfile === "function") renderProfile(); }
 const inView = e => viewLang === "all" || e.lang === viewLang;
 
 /* ---------- TCGdex API ---------- */
@@ -990,6 +1042,7 @@ function renderCardSheet(card){
           <div class="stepper"><button data-tdec="${esc(e.key)}" aria-label="Weniger zum Tausch" ${(e.trade || 0) <= 0 ? "disabled" : ""}>−</button><span class="num">${e.trade || 0}×</span><button data-tinc="${esc(e.key)}" aria-label="Mehr zum Tausch" ${(e.trade || 0) >= e.qty ? "disabled" : ""}>+</button></div>
         </div>`).join("")}
       <button class="btn primary block" data-add="${esc(card.id)}">${LANGS[addLang]} · ${VARIANTS[selVariant]} hinzufügen</button>
+      ${profileChips(card, sheetCard.lg)}
     </div>
     <div id="friendsBox">${friendsPanel(card)}</div>
     <div id="versionsBox"></div>
@@ -2235,7 +2288,7 @@ async function onAuth(user){
     me = { uid: user.uid, email: user.email, username: null };
     try {
       const prof = await fb.db.collection("users").doc(user.uid).get();
-      if (prof.exists) me.username = prof.data().username;
+      if (prof.exists) { me.username = prof.data().username; me.createdAt = tsMs(prof.data().createdAt) || null; }
       else needUsername = true;
     } catch { /* offline: Profil später */ }
     if (!needUsername) await startSync();
@@ -2255,6 +2308,7 @@ function cloudPayload(){
   return {
     items: JSON.parse(JSON.stringify(collection)),
     gradings: JSON.parse(JSON.stringify(gradings || {})),
+    profile: JSON.parse(JSON.stringify({ ...profile, tradesDone: trades.filter(t => t.status === "done").length, gradingsCount: Object.keys(gradings || {}).length })),
     updatedAt: fb.FieldValue.serverTimestamp(),
     v: 1
   };
@@ -2272,6 +2326,7 @@ function applyCloud(data){
   applyingRemote = true;
   collection = migrate(data.items || []);
   gradings = data.gradings || {};
+  if (data.profile) { profile = { ...PROFILE_DEFAULT, ...data.profile }; store.set("ks.profile", profile); }
   store.set("ks.collection", collection);
   store.set("ks.gradings", gradings);
   renderCollection();
@@ -2336,8 +2391,8 @@ function askLocalMerge(n){
 }
 /** Entfernt Sammlung, Grading-Einschätzungen und Konto-Bezug von diesem Gerät. */
 function clearLocalData(){
-  collection = []; gradings = {};
-  store.set("ks.collection", []); store.set("ks.gradings", {});
+  collection = []; gradings = {}; profile = { ...PROFILE_DEFAULT }; profileView = null;
+  store.set("ks.collection", []); store.set("ks.gradings", {}); store.set("ks.profile", profile);
   store.set("ks.syncUid", null); store.set("ks.dirty", false);
   if (openSet) closeSetDetail();
   if (typeof restartGrading === "function" && gr) restartGrading();
@@ -2407,7 +2462,7 @@ function renderAccountUi(){
   btn.hidden = !cloudConfigured;
   const dot = { ok: "good", syncing: "busy", offline: "warn", error: "warn" }[sync.state] || "";
   btn.innerHTML = me && me.username
-    ? `<span class="avatar">${esc(me.username[0].toUpperCase())}</span><span class="sdot ${dot}"></span>`
+    ? `${avatarHtml({ name: me.username, entry: myAvatarEntry() })}<span class="sdot ${dot}"></span>`
     : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>`;
   btn.setAttribute("aria-label", me ? `Konto ${me.username || ""}` : "Anmelden");
   hint.hidden = !cloudConfigured || !authReady || !!me;
@@ -2460,7 +2515,7 @@ function renderAccountSheet(){
         <button class="btn block" type="button" data-acct="cancel">Abbrechen</button>
       </form>`
       : `<div class="panel acct-head">
-          <span class="avatar big">${esc(me.username[0].toUpperCase())}</span>
+          ${avatarHtml({ name: me.username, entry: myAvatarEntry(), size: "big" })}
           <div style="min-width:0"><h2 style="font-size:24px">${esc(me.username)}</h2><div class="small">${esc(me.email)}</div></div>
         </div>
         <div class="panel">
@@ -2609,7 +2664,7 @@ $("#sheetBody").addEventListener("click", async e => {
   else if (a === "logoutForce") { await logout(true); }
 });
 /* ---------- Freunde & Tauschen ---------- */
-var fr = { all: [], profiles: {}, colls: {}, collUnsubs: {}, unsubQ: null, ready: false };
+var fr = { all: [], profiles: {}, colls: {}, prof: {}, collUnsubs: {}, unsubQ: null, ready: false };
 var ownerIdx = new Map();            // cardId -> [{ uid, name, qty, trade, langs, variants }]
 var tradeView = "friends", openFriend = null, friendTab = "trade", friendMsg = "", friendConfirm = null;
 const pairId = (a, b) => a < b ? `${a}_${b}` : `${b}_${a}`;
@@ -2628,6 +2683,7 @@ function startFriends(){
     for (const uid of accepted) if (!fr.collUnsubs[uid]) {
       fr.collUnsubs[uid] = fb.db.collection("collections").doc(uid).onSnapshot(s => {
         fr.colls[uid] = s.exists ? migrate(s.data().items || []) : [];
+        fr.prof[uid] = s.exists ? (s.data().profile || {}) : {};
         rebuildOwners();
       }, () => { if (fr.collUnsubs[uid]) { fr.colls[uid] = []; rebuildOwners(); } });
     }
@@ -2641,7 +2697,7 @@ function startFriends(){
 function stopFriends(){
   if (fr.unsubQ) fr.unsubQ();
   for (const u of Object.values(fr.collUnsubs)) u();
-  fr = { all: [], profiles: {}, colls: {}, collUnsubs: {}, unsubQ: null, ready: false };
+  fr = { all: [], profiles: {}, colls: {}, prof: {}, collUnsubs: {}, unsubQ: null, ready: false };
   ownerIdx = new Map(); openFriend = null;
   if (typeof stopTrades === "function") stopTrades();
   renderTradeBadge();
@@ -2649,7 +2705,7 @@ function stopFriends(){
 async function loadProfile(uid){
   if (!uid || fr.profiles[uid]) return;
   fr.profiles[uid] = { username: "…" };
-  try { const s = await fb.db.collection("users").doc(uid).get(); fr.profiles[uid] = { username: s.exists ? s.data().username : "Unbekannt" }; }
+  try { const s = await fb.db.collection("users").doc(uid).get(); fr.profiles[uid] = { username: s.exists ? s.data().username : "Unbekannt", createdAt: s.exists ? tsMs(s.data().createdAt) || null : null }; }
   catch { fr.profiles[uid] = { username: "Unbekannt" }; }
   renderTrade();
 }
@@ -2666,7 +2722,7 @@ function rebuildOwners(){
     for (const [cid, o] of per) { if (!ownerIdx.has(cid)) ownerIdx.set(cid, []); ownerIdx.get(cid).push(o); }
   }
   for (const list of ownerIdx.values()) list.sort((a, b) => b.trade - a.trade || b.qty - a.qty);
-  renderTrade(); renderTradeBadge();
+  renderTrade(); renderTradeBadge(); renderProfile();
   if (openSet) renderSetDetail();
   const card = $("#sheetBody")._card;
   if (sheetOpen() && card && !$("#sheetBody")._acct) { const box = $("#friendsBox"); if (box) box.innerHTML = friendsPanel(card); }
@@ -2791,11 +2847,11 @@ function renderTrade(){
       </div>`).join("")}</div>` : ""}
     <div class="section-title" style="margin-top:8px"><h2>Freunde</h2><span class="small">${friendsList.length}</span></div>
     <div class="sets">${friendsList.length ? friendsList.map(x => `<button class="friend-row" data-friend="${esc(x.uid)}">
-        <span class="avatar">${esc(friendName(x.uid)[0]?.toUpperCase() || "?")}</span>
+        ${friendAvatar(x.uid)}
         <div class="fr-info"><strong>${esc(friendName(x.uid))}</strong>
           <div class="small">${x.items ? `${x.items.reduce((s, e) => s + e.qty, 0)} Karten · ${x.tradeN} im Tauschordner` : "lädt …"}</div></div>
         ${x.forMe ? `<span class="pill">${x.forMe} fehlen dir</span>` : ""}
-      </button>`).join("") : `<div class="empty">Noch keine Freunde. Schick oben eine Anfrage – sobald sie angenommen ist, siehst du hier, welche Karten dein Freund hat.</div>`}</div>
+      </button>`).join("") + (friendsList.some(x => canHelpEachOther(x.uid)) ? `<div class="small"><span class="ring-dot"></span> Grün umrandet: Ihr habt beide Karten, die dem anderen fehlen – ihr könnt euch gegenseitig helfen.</div>` : "") : `<div class="empty">Noch keine Freunde. Schick oben eine Anfrage – sobald sie angenommen ist, siehst du hier, welche Karten dein Freund hat.</div>`}</div>
     ${outgoing.length ? `<div class="section-title" style="margin-top:8px"><h2>Gesendet</h2></div><div class="sets">${outgoing.map(f => `<div class="friend-row">
         <span class="avatar muted">${esc(friendName(otherUid(f))[0]?.toUpperCase() || "?")}</span>
         <div class="fr-info"><strong>${esc(friendName(otherUid(f)))}</strong><div class="small">wartet auf Bestätigung</div></div>
@@ -2843,7 +2899,7 @@ function friendDetailHtml(uid){
   const empty = { trade: `${esc(name)} hat noch nichts in den Tauschordner gelegt.`, forme: `${esc(name)} hat keine Karte, die dir fehlt.`, forthem: `Nichts aus deinem Tauschordner fehlt ${esc(name)}.` }[friendTab];
   return `<button class="back" data-tact="back">‹ Freunde</button>
     <div class="panel acct-head">
-      <span class="avatar big">${esc(name[0]?.toUpperCase() || "?")}</span>
+      ${friendAvatar(uid, "big")}
       <div style="min-width:0"><h2 style="font-size:24px">${esc(name)}</h2><div class="small">${items.reduce((s, e) => s + e.qty, 0)} Karten · ${lists.trade.reduce((s, o) => s + o.trade, 0)} im Tauschordner</div></div>
     </div>
     <button class="btn primary block" data-tact="offer" style="margin-bottom:14px">Tausch anbieten</button>
@@ -2889,7 +2945,7 @@ $("#tradeBody").addEventListener("click", async e => {
     if (t.dataset.card) { openCard(t.dataset.card, t.dataset.lg); return; }
     if (t.dataset.trade) { openTradeDetail(t.dataset.trade); return; }
     if (t.dataset.tact === "offer") { openComposer(openFriend); return; }
-    if (t.dataset.friend) { openFriend = t.dataset.friend; friendTab = "trade"; friendConfirm = null; renderTrade(); $("#view-trade").scrollTop = 0; return; }
+    if (t.dataset.friend) { openProfile(t.dataset.friend, "trade"); return; }
     if (t.dataset.ftab) { friendTab = t.dataset.ftab; renderTrade(); return; }
     if (t.dataset.accept) { t.disabled = true; await acceptFriend(t.dataset.accept); toast("Freundschaft bestätigt"); return; }
     if (t.dataset.decline) { t.disabled = true; await removeFriendship(t.dataset.decline); return; }
@@ -3271,6 +3327,252 @@ $("#sheetBody").addEventListener("input", e => {
   if (e.target.id === "tcQ") { tc.q = e.target.value; const l = $("#tcList"); if (l) l.innerHTML = pickerRows(); }
 });
 
+/* ---------- Profil ---------- */
+const PROFILE_DEFAULT = { showcase: [], avatar: null, bio: "", wish: [], hideValue: false, tradesDone: 0 };
+var profile = { ...PROFILE_DEFAULT, ...store.get("ks.profile", {}) };
+var profileView = null;          // null = eigenes Profil, sonst uid eines Freundes
+var profileBack = null;          // Tab, zu dem „Zurück“ führt
+var profPick = null;             // "showcase" | "avatar" | null (Auswahlfenster)
+function saveProfile(){ store.set("ks.profile", profile); schedulePush(); renderProfile(); }
+
+/* Avatar: Ausschnitt einer Karte oder Anfangsbuchstabe, optional grün umrandet */
+function avatarHtml({ name = "", entry = null, size = "", ring = false } = {}){
+  const letter = esc((name || "?")[0]?.toUpperCase() || "?");
+  const pic = entry ? cardImg(entry.image, entry.cardId, entry.localId, { lg: entry.lang, label: "" }) : "";
+  return `<span class="avatar ${size} ${entry ? "pic" : ""} ${ring ? "ring" : ""}">${entry ? `<span class="av-letter">${letter}</span>${pic}` : letter}</span>`;
+}
+const myAvatarEntry = () => collection.find(e => e.key === profile.avatar) || null;
+const friendAvatarEntry = uid => { const p = fr.prof?.[uid]; return p?.avatar ? (fr.colls[uid] || []).find(e => e.key === p.avatar) || null : null; };
+/** Grün umrandet: beide haben mindestens eine Karte, die dem anderen fehlt. */
+function canHelpEachOther(uid){
+  const theirs = fr.colls[uid]; if (!theirs?.length || !collection.length) return false;
+  const mine = ownedIds(), t = new Set(theirs.map(e => e.cardId));
+  return theirs.some(e => !mine.has(e.cardId)) && collection.some(e => !t.has(e.cardId));
+}
+function friendAvatar(uid, size = ""){
+  return avatarHtml({ name: friendName(uid), entry: friendAvatarEntry(uid), size, ring: canHelpEachOther(uid) });
+}
+
+/* Kennzahlen aus einer Sammlung */
+function statsOf(items){
+  const sets = new Map();
+  for (const e of items) {
+    const g = sets.get(e.setId) || { setId: e.setId, setName: e.setName, setTotal: e.setTotal, setLogo: e.setLogo, ids: new Set() };
+    g.ids.add(e.cardId); if (!g.setTotal && e.setTotal) g.setTotal = e.setTotal; sets.set(e.setId, g);
+  }
+  const setList = [...sets.values()].map(g => ({ ...g, have: g.ids.size, pct: g.setTotal ? Math.min(100, g.ids.size / g.setTotal * 100) : 0 }));
+  return {
+    cards: items.reduce((s, e) => s + e.qty, 0),
+    unique: new Set(items.map(e => e.cardId)).size,
+    sets: sets.size,
+    complete: setList.filter(g => g.setTotal && g.have >= g.setTotal).length,
+    value: items.reduce((s, e) => s + (e.price || 0) * e.qty, 0),
+    trade: items.reduce((s, e) => s + Math.min(e.trade || 0, e.qty), 0),
+    langs: new Set(items.map(e => e.lang)).size,
+    maxPrice: Math.max(0, ...items.map(e => e.price || 0)),
+    topSets: setList.filter(g => g.setTotal).sort((a, b) => b.pct - a.pct || b.have - a.have).slice(0, 3)
+  };
+}
+function badgesOf(st, extra){
+  return [
+    ["Erste Karte", "Die Sammlung hat begonnen", st.cards >= 1],
+    ["Sammler", "100 Karten", st.cards >= 100],
+    ["Großsammler", "500 Karten", st.cards >= 500],
+    ["Set komplett", "Ein Set vollständig", st.complete >= 1],
+    ["Schatzsucher", "Eine Karte über 100 €", st.maxPrice >= 100],
+    ["Polyglott", "Karten in mehreren Sprachen", st.langs >= 2],
+    ["Händler", "Erster Tausch abgeschlossen", (extra.trades || 0) >= 1],
+    ["Tauschprofi", "10 Tausche abgeschlossen", (extra.trades || 0) >= 10],
+    ["Grader", "Eine Grading-Einschätzung gespeichert", (extra.gradings || 0) >= 1]
+  ];
+}
+function topCards(items, n = 3){
+  const best = new Map();
+  for (const e of items) { if (e.price == null) continue; const k = e.lang + "|" + e.cardId; if (!best.has(k) || e.price > best.get(k).price) best.set(k, e); }
+  return [...best.values()].sort((a, b) => b.price - a.price).slice(0, n);
+}
+const miniTile = (e, { extra = "", inImg = "", cls = "", attrs = "" } = {}) => `<button class="tile ${cls}" data-pcard="${esc(e.cardId)}" data-lg="${esc(e.lang || "de")}" ${attrs}>
+    <div class="img">${cardImg(e.image, e.cardId, e.localId, { alt: e.name, lg: e.lang || "de" })}${inImg}</div>${extra}
+    <span class="cap">${esc(e.name)}</span><span class="cap num">${esc(e.setName || "")} · ${esc(e.localId)}</span>
+    ${e.price != null ? `<span class="price">${fmt(e.price)}</span>` : ""}</button>`;
+
+function renderProfile(){
+  const box = $("#profileBody"); if (!box || $("#view-profile").hidden) return;
+  const own = !profileView, uid = profileView;
+  if (!own && !fr.colls[uid]) { box.innerHTML = `<button class="back" data-pact="back">‹ Zurück</button><div class="spinner"></div>`; return; }
+  const items = own ? collection : fr.colls[uid];
+  const prof = own ? profile : { ...PROFILE_DEFAULT, ...(fr.prof?.[uid] || {}) };
+  const name = own ? (me?.username || "Dein Profil") : friendName(uid);
+  const st = statsOf(items);
+  const tradesDone = own ? (me ? trades.filter(t => t.status === "done").length : 0) : (prof.tradesDone || 0);
+  const badges = badgesOf(st, { trades: tradesDone, gradings: own ? Object.keys(gradings || {}).length : (prof.gradingsCount || 0) });
+  const byKey = new Map(items.map(e => [e.key, e]));
+  const show = (prof.showcase || []).map(k => byKey.get(k)).filter(Boolean).slice(0, 4);
+  const top = topCards(items);
+  const mine = ownedIds();
+  const since = own ? me?.createdAt : fr.profiles[uid]?.createdAt;
+  const avatar = own ? avatarHtml({ name, entry: myAvatarEntry(), size: "huge" }) : friendAvatar(uid, "huge");
+  const help = !own && canHelpEachOther(uid);
+  // Wunschliste: wer kann helfen?
+  const wishHave = w => own ? (ownerIdx.get(w.cardId) || []).some(o => o.trade > 0) : mine.has(w.cardId);
+
+  box.innerHTML = `
+    ${!own ? `<button class="back" data-pact="back">‹ Zurück</button>` : ""}
+    <div class="prof-head">
+      <div class="prof-av">${avatar}${own ? `<button class="av-edit" data-pact="avatar" aria-label="Profilbild wählen">✎</button>` : ""}</div>
+      <div class="prof-id">
+        <h2>${esc(name)}</h2>
+        ${since ? `<div class="small">Sammelt mit seit ${new Date(since).toLocaleDateString("de-DE", { month: "long", year: "numeric" })}</div>` : ""}
+        ${own ? `<button class="bio ${prof.bio ? "" : "empty"}" data-pact="bio">${prof.bio ? esc(prof.bio) : "+ Status hinzufügen, z. B. „Suche alles von Glurak“"}</button>`
+              : prof.bio ? `<div class="bio">${esc(prof.bio)}</div>` : ""}
+        ${help ? `<div class="small ok-text">Ihr könnt euch gegenseitig helfen</div>` : ""}
+      </div>
+    </div>
+    ${own && profPick === "bio" ? `<form class="panel acct-form" id="bioForm"><input id="bioInput" maxlength="80" value="${esc(prof.bio)}" placeholder="Dein Status (max. 80 Zeichen)"><div class="row-btns"><button class="btn primary" type="submit">Speichern</button><button class="btn" type="button" data-pact="bioCancel">Abbrechen</button></div></form>` : ""}
+
+    <div class="stat-grid">
+      <div><b class="num">${st.cards}</b><span>Karten</span></div>
+      <div><b class="num">${st.sets}</b><span>Sets</span></div>
+      <div><b class="num">${!own && prof.hideValue ? "–" : fmt(st.value).replace(/,\d\d\s/, " ")}</b><span>${!own && prof.hideValue ? "Wert verborgen" : "Wert"}</span></div>
+      <div><b class="num">${st.trade}</b><span>zum Tausch</span></div>
+      <div><b class="num">${tradesDone}</b><span>Tausche</span></div>
+      <div><b class="num">${st.complete}</b><span>Sets komplett</span></div>
+    </div>
+
+    <div class="row-btns prof-actions">
+      ${own ? `<button class="btn primary" data-pact="folder">Mein Tauschordner (${st.trade})</button>`
+            : `<button class="btn primary" data-pact="offer">Tausch anbieten</button><button class="btn" data-pact="friendcards">Tauschordner & Karten</button>`}
+    </div>
+
+    <div class="section-title"><h2>Vitrine</h2><span class="small">${show.length}/4</span></div>
+    <div class="showcase">${[0, 1, 2, 3].map(i => {
+      const e = show[i];
+      if (e) return `<div class="sc-slot">${miniTile(e, { cls: !own && !mine.has(e.cardId) ? "" : "" })}${own ? `<button class="sc-rm" data-sc-rm="${esc(e.key)}" aria-label="Aus Vitrine entfernen">×</button>` : ""}</div>`;
+      return own ? `<button class="sc-empty" data-pact="showcase"><span>+</span>Karte zeigen</button>` : `<div class="sc-empty muted"></div>`;
+    }).join("")}</div>
+
+    ${top.length ? `<div class="section-title"><h2>Top ${top.length}</h2><span class="small">teuerste Karten</span></div>
+    <div class="podium">${top.map((e, i) => miniTile(e, { extra: `<span class="rank-badge r${i + 1}">${i + 1}</span>`, cls: !own && prof.hideValue ? "noprice" : "" })).join("")}</div>` : ""}
+
+    <div class="section-title"><h2>Wunschliste</h2><span class="small">${(prof.wish || []).length}/12</span></div>
+    ${(prof.wish || []).length ? `<div class="grid">${prof.wish.map(w => `<div class="sc-slot">${miniTile(w, { cls: wishHave(w) ? "offered" : "",
+        inImg: wishHave(w) ? `<span class="need">${own ? "bei Freund" : "du hast sie"}</span>` : "" })}${own ? `<button class="sc-rm small-rm" data-wish-rm="${esc(w.lang + "|" + w.cardId)}" aria-label="Von Wunschliste entfernen">×</button>` : ""}</div>`).join("")}</div>
+      <div class="small" style="margin-top:6px">${own ? "Grün umrandet: liegt im Tauschordner eines Freundes." : "Grün umrandet: die Karte hast du – damit kannst du helfen."}</div>`
+      : `<div class="empty small-empty">${own ? "Noch leer. Öffne eine Karte (z. B. in einem Set unter „Fehlend“) und tippe auf „Auf Wunschliste“." : `${esc(name)} hat noch keine Wünsche eingetragen.`}</div>`}
+
+    ${st.topSets.length ? `<div class="section-title"><h2>Set-Fortschritt</h2></div>
+    <div class="sets">${st.topSets.map(g => `<div class="set-row static">
+      ${g.setLogo ? `<img src="${esc(g.setLogo)}.webp" alt="" loading="lazy">` : `<span></span>`}
+      <div><div class="name">${esc(g.setName)}</div><div class="bar ${g.pct >= 100 ? "done" : ""}"><i style="width:${g.pct}%"></i></div><div class="small num">${g.have} von ${g.setTotal}</div></div>
+      <div class="small num">${Math.round(g.pct)} %</div></div>`).join("")}</div>` : ""}
+
+    <div class="section-title"><h2>Abzeichen</h2><span class="small">${badges.filter(b => b[2]).length}/${badges.length}</span></div>
+    <div class="badges">${badges.filter(b => own || b[2]).map(([t, d, ok]) => `<div class="badge-card ${ok ? "on" : ""}"><span class="medal">${ok ? "★" : "☆"}</span><strong>${t}</strong><span class="small">${d}</span></div>`).join("") || `<div class="small">Noch keine Abzeichen.</div>`}</div>
+
+    ${own ? `<div class="panel" style="margin-top:18px">
+      <label class="check"><input type="checkbox" id="hideValue" ${profile.hideValue ? "checked" : ""}> Gesamtwert vor Freunden verbergen</label>
+      <div class="small">${me ? "Vitrine, Wunschliste und Profilbild sehen deine Freunde." : "Melde dich an, damit Freunde dein Profil sehen können."}</div>
+    </div>` : ""}`;
+}
+
+/* Auswahl für Vitrine und Profilbild */
+function openProfilePicker(kind){
+  profPick = kind;
+  openSheet(kind === "avatar" ? "Profilbild wählen" : "Karte für die Vitrine", "");
+  $("#sheetBody")._ppick = true;
+  renderProfilePicker("");
+}
+function renderProfilePicker(q){
+  const chosen = new Set(profile.showcase || []);
+  let list = collection.filter(e => profPick === "avatar" || !chosen.has(e.key));
+  if (q) list = list.filter(e => `${e.name} ${e.setName} ${e.localId}`.toLowerCase().includes(q.toLowerCase()));
+  list = list.slice().sort((a, b) => (b.price || 0) - (a.price || 0)).slice(0, 150);
+  $("#sheetBody").innerHTML = `
+    ${profPick === "avatar" ? `<div class="small">Das Bild der Karte wird als runder Ausschnitt gezeigt.</div>${profile.avatar ? `<button class="btn block" data-pp="none">Kein Kartenbild – Anfangsbuchstabe</button>` : ""}` : ""}
+    <input id="ppQ" class="filter-input" type="search" placeholder="Name, Set oder Nummer" value="${esc(q)}" autocomplete="off">
+    <div class="trows" id="ppList">${list.length ? list.map(e => `<button class="trow pick" data-pp="${esc(e.key)}">
+      <div class="cimg">${cardImg(e.image, e.cardId, e.localId, { lg: e.lang })}</div>
+      <div class="tinfo"><strong>${esc(e.name)}</strong><div class="small"><span class="num">${esc(e.setName || "")} · ${esc(e.localId)}</span> ${badge(e.lang)}</div></div>
+      <div class="num price-col">${e.price != null ? fmt(e.price) : "–"}</div></button>`).join("") : `<div class="empty">Keine passenden Karten in deiner Sammlung.</div>`}</div>`;
+}
+$("#sheetBody").addEventListener("click", e => {
+  if (!$("#sheetBody")._ppick) return;
+  const b = e.target.closest("[data-pp]"); if (!b) return;
+  const k = b.dataset.pp;
+  if (profPick === "avatar") profile.avatar = k === "none" ? null : k;
+  else if (!profile.showcase.includes(k) && profile.showcase.length < 4) profile.showcase.push(k);
+  profPick = null; $("#sheetBody")._ppick = false; closeSheet(); saveProfile();
+});
+$("#sheetBody").addEventListener("input", e => { if (e.target.id === "ppQ") { const l = $("#ppList"); const q = e.target.value; renderProfilePicker(q); const i = $("#ppQ"); i.focus(); i.setSelectionRange(q.length, q.length); } });
+
+/* Wunschliste und Vitrine aus der Kartenansicht */
+function wishKey(card, lg){ return `${lg}|${card.id}`; }
+function toggleWish(card, lg){
+  const k = wishKey(card, lg), i = profile.wish.findIndex(w => w.lang + "|" + w.cardId === k);
+  if (i >= 0) { profile.wish.splice(i, 1); toast("Von der Wunschliste entfernt"); }
+  else {
+    if (profile.wish.length >= 12) { toast("Die Wunschliste ist voll (12 Karten)"); return; }
+    profile.wish.push(JSON.parse(JSON.stringify({ cardId: card.id, lang: lg, name: card.name, localId: String(card.localId), setId: card.set?.id || setIdOf(card.id),
+      setName: card.set?.name || "", setTotal: card.set?.cardCount?.official ?? null, image: card.image ?? null, price: marketPrice(card, availableVariants(card)[0]) })));
+    toast("Auf deine Wunschliste gesetzt");
+  }
+  saveProfile();
+}
+function profileChips(card, lg){
+  const onWish = profile.wish.some(w => w.lang + "|" + w.cardId === wishKey(card, lg));
+  const entries = collection.filter(e => e.cardId === card.id);
+  const inShow = entries.some(e => profile.showcase.includes(e.key));
+  return `<div class="variants prof-chips">
+    <button class="chip" data-pwish="1" aria-pressed="${onWish}">${onWish ? "★ Auf Wunschliste" : "☆ Auf Wunschliste"}</button>
+    ${entries.length ? `<button class="chip" data-pshow="1" aria-pressed="${inShow}">${inShow ? "In der Vitrine" : "In Vitrine zeigen"}</button>
+      <button class="chip" data-pavatar="1" aria-pressed="${entries.some(e => e.key === profile.avatar)}">Als Profilbild</button>` : ""}
+  </div>`;
+}
+$("#sheetBody").addEventListener("click", e => {
+  const b = e.target.closest("[data-pwish],[data-pshow],[data-pavatar]"); if (!b) return;
+  const card = $("#sheetBody")._card, lg = sheetCard?.lg || "de"; if (!card) return;
+  const entries = collection.filter(x => x.cardId === card.id);
+  if (b.dataset.pwish) toggleWish(card, lg);
+  else if (b.dataset.pshow) {
+    const inShow = entries.find(x => profile.showcase.includes(x.key));
+    if (inShow) profile.showcase = profile.showcase.filter(k => k !== inShow.key);
+    else if (profile.showcase.length >= 4) { toast("Die Vitrine ist voll – entferne zuerst eine Karte im Profil"); return; }
+    else if (entries[0]) profile.showcase.push(entries[0].key);
+    saveProfile(); toast(inShow ? "Aus der Vitrine entfernt" : "In der Vitrine");
+  } else if (b.dataset.pavatar) {
+    profile.avatar = entries.some(x => x.key === profile.avatar) ? null : entries[0]?.key || null; saveProfile(); renderAccountUi();
+    toast(profile.avatar ? "Neues Profilbild" : "Profilbild entfernt");
+  }
+  renderCardSheet(card);
+});
+
+/* Ereignisse im Profil */
+function openProfile(uid, back){
+  profileView = uid || null; profileBack = back || null; profPick = null;
+  showTab("profile");
+  $("#view-profile").scrollTop = 0;
+}
+$("#profileBody").addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.pcard) { openCard(t.dataset.pcard, t.dataset.lg); return; }
+  if (t.dataset.scRm) { profile.showcase = profile.showcase.filter(k => k !== t.dataset.scRm); saveProfile(); return; }
+  if (t.dataset.wishRm) { profile.wish = profile.wish.filter(w => w.lang + "|" + w.cardId !== t.dataset.wishRm); saveProfile(); return; }
+  const a = t.dataset.pact;
+  if (a === "back") { const b = profileBack || "trade"; profileView = null; showTab(b); }
+  else if (a === "avatar") openProfilePicker("avatar");
+  else if (a === "showcase") openProfilePicker("showcase");
+  else if (a === "bio") { profPick = "bio"; renderProfile(); $("#bioInput")?.focus(); }
+  else if (a === "bioCancel") { profPick = null; renderProfile(); }
+  else if (a === "folder") { tradeView = "folder"; openFriend = null; showTab("trade"); }
+  else if (a === "offer") openComposer(profileView);
+  else if (a === "friendcards") { openFriend = profileView; friendTab = "trade"; profileView = null; showTab("trade"); }
+});
+$("#profileBody").addEventListener("submit", e => {
+  if (e.target.id !== "bioForm") return;
+  e.preventDefault(); profile.bio = $("#bioInput").value.trim().slice(0, 80); profPick = null; saveProfile();
+});
+$("#profileBody").addEventListener("change", e => { if (e.target.id === "hideValue") { profile.hideValue = e.target.checked; saveProfile(); } });
+
 /* ---------- Datenschutzhinweise ---------- */
 function openPrivacy(){
   const op = window.APP_OPERATOR || {}, hasOp = op.name && op.email && !/DEIN/i.test(op.name + op.email);
@@ -3285,7 +3587,7 @@ function openPrivacy(){
     <p>Gespeichert werden deine E-Mail-Adresse, dein Passwort (von Google verschlüsselt, für niemanden lesbar), dein Nutzername, der verwendete Einladungscode und deine Sammlung samt Grading-Einschätzungen. Zweck: Sicherung und Abgleich deiner Sammlung zwischen deinen Geräten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO – du nutzt diese Funktionen auf eigenen Wunsch.</p>
     <p>Die Daten liegen bei Google Firebase (Google Ireland Ltd. / Google LLC) im Rechenzentrum Frankfurt. Google verarbeitet sie als Auftragsverarbeiter. Eine Übermittlung in die USA ist nicht ausgeschlossen; sie ist über das EU-US Data Privacy Framework und Standardvertragsklauseln abgesichert.</p>
     <h3>Freunde</h3>
-    <p>Freundschaften entstehen nur, wenn eine Anfrage angenommen wird. Bestätigte Freunde sehen deinen Nutzernamen und deine Sammlung – einschließlich Tauschordner, Mengen, Varianten und Grading-Einschätzungen. Deine E-Mail-Adresse sieht niemand. Gespeichert werden außerdem die Freundschaften und offenen Anfragen. Entfernst du einen Freund, sieht er deine Sammlung sofort nicht mehr. Beim Löschen deines Kontos werden auch alle Freundschaften gelöscht.</p>
+    <p>Freundschaften entstehen nur, wenn eine Anfrage angenommen wird. Bestätigte Freunde sehen deinen Nutzernamen, dein Profil (Profilbild, Status, Vitrine, Wunschliste, Statistiken – den Gesamtwert nur, wenn du ihn nicht verbirgst) und deine Sammlung – einschließlich Tauschordner, Mengen, Varianten und Grading-Einschätzungen. Deine E-Mail-Adresse sieht niemand. Gespeichert werden außerdem die Freundschaften und offenen Anfragen. Entfernst du einen Freund, sieht er deine Sammlung sofort nicht mehr. Beim Löschen deines Kontos werden auch alle Freundschaften gelöscht.</p>
     <p>Alle angemeldeten Mitglieder können über einen Nutzernamen prüfen, ob es ihn gibt, um eine Anfrage zu senden.</p>
     <h3>Tauschangebote</h3>
     <p>Ein Tauschangebot enthält die ausgewählten Karten beider Seiten, eine optionale Nachricht, den Status und die Bestätigungen. Sichtbar ist es nur für die beiden Beteiligten. Nach dem Abschluss bucht die App die Karten in beiden Sammlungen um. Angebote bleiben als Verlauf gespeichert, bis eines der beiden Konten gelöscht wird; dabei werden alle Angebote des gelöschten Kontos entfernt. Die Übergabe der Karten selbst findet außerhalb der App statt.</p>
@@ -3313,7 +3615,8 @@ $("#acctHintBtn").addEventListener("click", () => { acctMode = "register"; openA
 function showTab(name){
   if (name === "collection") { closeSetDetail(); loadAllSets(); }
   $$("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
-  ["scan","collection","grading","trade","search"].forEach(t => $("#view-" + t).hidden = t !== name);
+  ["scan","collection","grading","trade","profile","search"].forEach(t => $("#view-" + t).hidden = t !== name);
+  if (name === "profile") renderProfile();
   if (name === "trade") renderTrade();
   if (name === "grading") { if (!gr) openGrading(null); else renderGrading(); }
   else stopGradeCam();
@@ -3321,7 +3624,10 @@ function showTab(name){
   else stopCamera();
   if (name === "collection") renderCollection();
 }
-$$("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+$$("nav.tabs button").forEach(b => b.addEventListener("click", () => {
+  if (b.dataset.tab === "profile") { profileView = null; profPick = null; }
+  showTab(b.dataset.tab);
+}));
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) { stopCamera(); stopGradeCam(); }
   else if (!$("#view-scan").hidden && store.get("ks.camOn", false)) startCamera();
@@ -3332,7 +3638,7 @@ store.set("ks.collection", collection);   // migrierte Einträge sichern
 renderScanLang();
 renderLang();
 renderCollection();
-showTab("scan");
+showTab("collection");
 initCloud();
 </script>
 </body>
