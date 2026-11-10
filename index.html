@@ -57,7 +57,7 @@ main{flex:1;min-height:0;position:relative}
 .eyebrow{font:600 12px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 
 /* Tab bar */
-nav.tabs{display:grid;grid-template-columns:repeat(6,1fr);background:var(--surface);border-top:1px solid var(--line);
+nav.tabs{display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);
   padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
 nav.tabs button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;
   font-size:12px;font-weight:600;color:var(--muted)}
@@ -228,6 +228,8 @@ a{color:var(--accent)}
 /* Konto */
 .acct-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;padding:0;flex:none}
 .acct-btn svg{width:22px;height:22px}
+.head-btns{display:flex;gap:10px;align-items:center}
+.icon-btn{color:var(--fg)}
 .avatar{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--accent-fg);font:800 18px/1 var(--display)}
 .avatar.big{width:56px;height:56px;font-size:26px;flex:none}
 .sdot{position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg);background:var(--muted)}
@@ -449,7 +451,9 @@ nav.tabs button{position:relative}
   <!-- COLLECTION -->
   <section class="view" id="view-collection" aria-label="Sammlung" hidden>
     <div id="collectionList">
-      <div class="view-head"><h1>Sammlung</h1><button class="acct-btn" id="acctBtn" hidden></button></div>
+      <div class="view-head"><h1>Sammlung</h1><div class="head-btns">
+        <button class="acct-btn icon-btn" id="searchBtn" aria-label="Karte suchen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+        <button class="acct-btn" id="acctBtn" hidden></button></div></div>
       <div class="langbar" id="langBar" role="group" aria-label="Sprache der Sammlung"></div>
       <div class="acct-hint" id="acctHint" hidden>
         <div><strong>Sammlung online sichern</strong><div class="small">Mit einem Konto ist deine Sammlung auf allen Geräten da – und bald kannst du mit Freunden tauschen.</div></div>
@@ -524,6 +528,7 @@ nav.tabs button{position:relative}
 
   <!-- SEARCH -->
   <section class="view" id="view-search" aria-label="Suchen" hidden>
+    <button class="back" id="searchBack">‹ Sammlung</button>
     <div class="view-head">
       <h1>Suchen</h1>
       <div class="lang" role="group" aria-label="Kartensprache">
@@ -551,8 +556,7 @@ nav.tabs button{position:relative}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>Tauschen<span class="tab-badge" id="tradeBadge" hidden></span></button>
   <button role="tab" data-tab="profile" aria-selected="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.6c1.3-2.4 3.4-3.6 5.8-3.6s4.5 1.2 5.8 3.6"/></svg>Profil</button>
-  <button role="tab" data-tab="search" aria-selected="false">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Suchen</button>
+
 </nav>
 
 <div class="scrim" id="scrim" hidden></div>
@@ -2858,10 +2862,46 @@ function renderTrade(){
         <div class="fr-act"><button class="btn" data-decline="${esc(f.id)}">Zurückziehen</button></div>
       </div>`).join("")}</div>` : ""}`;
 }
+/* Tauschordner nach Sets gegliedert (nur Sets mit Tauschkarten) */
+var folderSet = null, friendFolderSet = null;
+function tradeSetGroups(list){
+  const m = new Map();
+  for (const e of list) {
+    const g = m.get(e.setId) || { setId: e.setId, setName: e.setName, setLogo: e.setLogo, setTotal: e.setTotal, items: [] };
+    if (!g.setLogo && e.setLogo) g.setLogo = e.setLogo;
+    g.items.push(e); m.set(e.setId, g);
+  }
+  return [...m.values()].map(g => ({ ...g,
+    n: g.items.reduce((s, e) => s + e.trade, 0),
+    value: g.items.reduce((s, e) => s + (e.price || 0) * e.trade, 0) }))
+    .sort((a, b) => b.value - a.value || (a.setName || "").localeCompare(b.setName || "", "de"));
+}
+const byNumber = (a, b) => String(a.localId).localeCompare(String(b.localId), "de", { numeric: true });
+function folderSetsHtml(list, openId, tileFn, emptyText){
+  const groups = tradeSetGroups(list);
+  if (!groups.length) return `<div class="empty">${emptyText}</div>`;
+  const g = openId && groups.find(x => x.setId === openId);
+  if (g) return `<button class="back" data-fset="">‹ Alle Sets im Tauschordner</button>
+    <div class="set-hero">
+      ${g.setLogo ? `<img src="${esc(g.setLogo)}.webp" alt="${esc(g.setName)}">` : `<h2>${esc(g.setName)}</h2>`}
+      <div class="set-stats">
+        <div><div class="big num">${g.n}</div><div class="small">${g.n === 1 ? "Karte" : "Karten"} zum Tausch</div></div>
+        <div style="text-align:right"><div class="big num" style="color:var(--accent)">${fmt(g.value)}</div><div class="small">Wert</div></div>
+      </div>
+    </div>
+    <div class="grid">${g.items.slice().sort(byNumber).map(tileFn).join("")}</div>`;
+  return `<div class="sets">${groups.map(x => `<button class="set-row" data-fset="${esc(x.setId)}">
+      ${x.setLogo ? `<img src="${esc(x.setLogo)}.webp" alt="" loading="lazy">` : `<span></span>`}
+      <div><div class="name">${esc(x.setName || x.setId)}</div>
+        <div class="small num">${x.n} ${x.n === 1 ? "Karte" : "Karten"} zum Tausch${x.items.length > 1 && x.items.length !== x.n ? ` · ${x.items.length} verschiedene` : ""}</div></div>
+      <div class="value num">${fmt(x.value)}</div></button>`).join("")}</div>`;
+}
 function folderHtml(){
   const list = myTrade().sort((a, b) => (b.price || 0) - (a.price || 0));
   const n = list.reduce((s, e) => s + e.trade, 0), value = list.reduce((s, e) => s + (e.price || 0) * e.trade, 0);
   const dupes = collection.reduce((s, e) => s + Math.max(0, e.qty - 1 - (e.trade || 0)), 0);
+  if (folderSet && tradeSetGroups(list).some(g => g.setId === folderSet)) return folderSetsHtml(list, folderSet, e => tradeTile(e, `<span class="qty">${e.trade}×</span>`), "");
+  folderSet = null;
   return `<div class="summary">
       <div class="eyebrow">Mein Tauschordner · für Freunde sichtbar</div>
       <div class="total num">${n} ${n === 1 ? "Karte" : "Karten"}</div>
@@ -2872,8 +2912,7 @@ function folderHtml(){
       </div>
       <div class="small">„Doppelte übernehmen“ zeigt dir alle Karten, die du unter derselben Nummer mehrfach hast – du wählst aus, welche in den Ordner kommen (jeweils alle bis auf eine). Einzelne Karten und die genaue Anzahl stellst du in der Kartenansicht unter „Zum Tausch“ ein.</div>
     </div>
-    ${list.length ? `<div class="grid">${list.map(e => tradeTile(e, `<span class="qty">${e.trade}×</span>`)).join("")}</div>`
-      : `<div class="empty">Dein Tauschordner ist leer.</div>`}`;
+    ${folderSetsHtml(list, folderSet, e => tradeTile(e, `<span class="qty">${e.trade}×</span>`), "Dein Tauschordner ist leer.")}`;
 }
 function friendDetailHtml(uid){
   const name = friendName(uid), items = fr.colls[uid] || [];
@@ -2906,7 +2945,8 @@ function friendDetailHtml(uid){
     <div class="filters">${[["trade", `Tauschordner (${lists.trade.length})`], ["forme", `Fehlt mir (${lists.forme.length})`], ["forthem", `Fehlt ${name} (${lists.forthem.length})`]]
       .map(([k, l]) => `<button class="chip" data-ftab="${k}" aria-pressed="${friendTab === k}">${esc(l)}</button>`).join("")}</div>
     ${friendTab === "forthem" ? `<p class="small" style="margin:0 0 12px">Karten aus deinem Tauschordner, die ${esc(name)} noch nicht hat – gute Tauschangebote.</p>` : ""}
-    ${list.length ? `<div class="grid">${list.map(tile).join("")}</div>` : `<div class="empty">${empty}</div>`}
+    ${friendTab === "trade" ? folderSetsHtml(list, friendFolderSet, tile, empty)
+      : list.length ? `<div class="grid">${list.map(tile).join("")}</div>` : `<div class="empty">${empty}</div>`}
 
     ${f ? `<button class="btn block link-danger" data-unfriend="${esc(f.id)}">${friendConfirm === f.id ? `Wirklich ${esc(name)} entfernen?` : "Freund entfernen"}</button>` : ""}`;
 }
@@ -2929,7 +2969,7 @@ function friendsPanel(card){
 /* Ereignisse */
 $("#tradeTabs").addEventListener("click", e => {
   const b = e.target.closest("[data-tview]"); if (!b) return;
-  tradeView = b.dataset.tview; friendConfirm = null; friendMsg = ""; renderTrade();
+  tradeView = b.dataset.tview; friendConfirm = null; friendMsg = ""; folderSet = null; renderTrade();
 });
 $("#tradeBody").addEventListener("submit", async e => {
   if (e.target.id !== "addFriendForm") return;
@@ -2946,7 +2986,11 @@ $("#tradeBody").addEventListener("click", async e => {
     if (t.dataset.trade) { openTradeDetail(t.dataset.trade); return; }
     if (t.dataset.tact === "offer") { openComposer(openFriend); return; }
     if (t.dataset.friend) { openProfile(t.dataset.friend, "trade"); return; }
-    if (t.dataset.ftab) { friendTab = t.dataset.ftab; renderTrade(); return; }
+    if (t.dataset.ftab) { friendTab = t.dataset.ftab; friendFolderSet = null; renderTrade(); return; }
+    if (t.dataset.fset !== undefined) {
+      if (openFriend) friendFolderSet = t.dataset.fset || null; else folderSet = t.dataset.fset || null;
+      renderTrade(); $("#view-trade").scrollTop = 0; return;
+    }
     if (t.dataset.accept) { t.disabled = true; await acceptFriend(t.dataset.accept); toast("Freundschaft bestätigt"); return; }
     if (t.dataset.decline) { t.disabled = true; await removeFriendship(t.dataset.decline); return; }
     if (t.dataset.unfriend) {
@@ -3563,9 +3607,9 @@ $("#profileBody").addEventListener("click", e => {
   else if (a === "showcase") openProfilePicker("showcase");
   else if (a === "bio") { profPick = "bio"; renderProfile(); $("#bioInput")?.focus(); }
   else if (a === "bioCancel") { profPick = null; renderProfile(); }
-  else if (a === "folder") { tradeView = "folder"; openFriend = null; showTab("trade"); }
+  else if (a === "folder") { tradeView = "folder"; openFriend = null; folderSet = null; showTab("trade"); }
   else if (a === "offer") openComposer(profileView);
-  else if (a === "friendcards") { openFriend = profileView; friendTab = "trade"; profileView = null; showTab("trade"); }
+  else if (a === "friendcards") { openFriend = profileView; friendTab = "trade"; friendFolderSet = null; profileView = null; showTab("trade"); }
 });
 $("#profileBody").addEventListener("submit", e => {
   if (e.target.id !== "bioForm") return;
@@ -3614,7 +3658,8 @@ $("#acctHintBtn").addEventListener("click", () => { acctMode = "register"; openA
 /* ---------- Tabs ---------- */
 function showTab(name){
   if (name === "collection") { closeSetDetail(); loadAllSets(); }
-  $$("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  // Die Suche gehört zur Sammlung – dort bleibt der Reiter markiert
+  $$("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === (name === "search" ? "collection" : name))));
   ["scan","collection","grading","trade","profile","search"].forEach(t => $("#view-" + t).hidden = t !== name);
   if (name === "profile") renderProfile();
   if (name === "trade") renderTrade();
@@ -3624,6 +3669,8 @@ function showTab(name){
   else stopCamera();
   if (name === "collection") renderCollection();
 }
+$("#searchBtn").addEventListener("click", () => { showTab("search"); $("#view-search").scrollTop = 0; setTimeout(() => $("#searchInput").focus(), 50); });
+$("#searchBack").addEventListener("click", () => showTab("collection"));
 $$("nav.tabs button").forEach(b => b.addEventListener("click", () => {
   if (b.dataset.tab === "profile") { profileView = null; profPick = null; }
   showTab(b.dataset.tab);
