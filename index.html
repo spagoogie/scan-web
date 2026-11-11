@@ -426,7 +426,7 @@ nav.tabs button{position:relative}
       <div class="cam-top">
         <h1>Karte scannen</h1>
         <div class="langs" role="group" aria-label="Sprache der Karte">
-          <button data-scanlang="de">DE</button><button data-scanlang="en">EN</button><button data-scanlang="ja">JA</button>
+          <button data-scanlang="de">DE</button><button data-scanlang="en">EN</button><button data-scanlang="ja">JA</button><button data-scanlang="zh-cn">ZH</button>
         </div>
       </div>
       <div class="status" id="status" hidden><span class="dot"></span><span id="statusText"></span></div>
@@ -535,6 +535,7 @@ nav.tabs button{position:relative}
         <button class="chip" data-lang="de">DE</button>
         <button class="chip" data-lang="en">EN</button>
         <button class="chip" data-lang="ja">JA</button>
+        <button class="chip" data-lang="zh-cn">ZH</button>
       </div>
     </div>
     <form class="searchbar" id="searchForm">
@@ -591,9 +592,12 @@ function toast(msg){
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 2200);
 }
 const VARIANTS = { normal:"Normal", holo:"Holo", reverse:"Reverse Holo", firstEdition:"1. Edition" };
-const LANGS = { de:"Deutsch", en:"Englisch", ja:"Japanisch" };
+const LANGS = { de:"Deutsch", en:"Englisch", ja:"Japanisch", "zh-cn":"Chinesisch" };
+// Japanisch und Chinesisch haben eigene Sets/Nummern – kein Rückgriff auf DE/EN-Daten
+const ownSets = lg => lg === "ja" || lg === "zh-cn";
+const LANG_SHORT = { "zh-cn":"ZH" };
 const LANG_CODES = Object.keys(LANGS);
-const badge = lg => `<span class="badge">${esc(String(lg).toUpperCase())}</span>`;
+const badge = lg => `<span class="badge">${esc(LANG_SHORT[lg] || String(lg).toUpperCase())}</span>`;
 const img = (base, q = "low") => base ? `${base}/${q}.webp` : "";
 /* Bilder: TCGdex (Sprache) → TCGdex Englisch → Limitless (offizielle Scans), sonst Platzhalter mit Nummer */
 const setMeta = store.get("ks.setMeta", {});   // setId -> { serie, abbr }
@@ -606,11 +610,11 @@ function imgCandidates(base, cardId, localId, q, lg){
   const out = [], setId = cardId ? setIdOf(cardId) : "", meta = setMeta[setId] || {};
   if (base) {
     out.push(`${base}/${q}.webp`);
-    if (lg !== "ja") { const en = base.replace(/\/(de|fr|es|it|pt)\//, "/en/"); if (en !== base) out.push(`${en}/${q}.webp`); }
+    if (!ownSets(lg)) { const en = base.replace(/\/(de|fr|es|it|pt)\//, "/en/"); if (en !== base) out.push(`${en}/${q}.webp`); }
   } else if (meta.serie && localId) {
-    for (const l of lg === "ja" ? ["ja"] : [lg || "de", "en"]) out.push(`https://assets.tcgdex.net/${l}/${meta.serie}/${setId}/${localId}/${q}.webp`);
+    for (const l of ownSets(lg) ? [lg] : [lg || "de", "en"]) out.push(`https://assets.tcgdex.net/${l}/${meta.serie}/${setId}/${localId}/${q}.webp`);
   }
-  if (lg !== "ja" && meta.abbr && /^\d+$/.test(localId || ""))
+  if (!ownSets(lg) && meta.abbr && /^\d+$/.test(localId || ""))
     out.push(`https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/${meta.abbr}/${meta.abbr}_${String(localId).padStart(3, "0")}_R_EN_${q === "high" ? "LG" : "SM"}.png`);
   return [...new Set(out)];
 }
@@ -1002,7 +1006,7 @@ function renderCardSheet(card){
   const tpRows = tp ? rows(Object.entries(tp).filter(([k, v]) => v && typeof v === "object").map(([k, v]) => [tpLabels[k] || k, v.marketPrice ?? v.midPrice]), usd) : "";
   const updated = cm?.updated ? new Date(cm.updated) : null;
   // Deutsch und Englisch teilen sich die Karten-ID, Japanisch hat eigene Sets.
-  const langChoices = sheetCard.lg === "ja" ? ["ja"] : ["de", "en"];
+  const langChoices = ownSets(sheetCard.lg) ? [sheetCard.lg] : ["de", "en"];
   if (!langChoices.includes(addLang)) addLang = langChoices[0];
 
   $("#sheetTitle").textContent = card.name;
@@ -1022,7 +1026,7 @@ function renderCardSheet(card){
       ${holoRows ? `<div class="ptitle">Cardmarket · Reverse/Holo</div><table class="prices">${holoRows}</table>` : ""}
       ${tpRows ? `<div class="ptitle">TCGplayer (USA)</div><table class="prices">${tpRows}</table>` : ""}
       ${updated && !isNaN(updated) ? `<div class="small">Stand: ${updated.toLocaleDateString("de-DE")}</div>` : ""}
-      ${!cm && !tp ? `<div class="small">Für diese Karte gibt es in der Datenbank keine Preisdaten${sheetCard.lg === "ja" ? " (bei japanischen Karten häufig)" : ""}.</div>` : ""}
+      ${!cm && !tp ? `<div class="small">Für diese Karte gibt es in der Datenbank keine Preisdaten${ownSets(sheetCard.lg) ? " (bei japanischen und chinesischen Karten häufig)" : ""}.</div>` : ""}
     </div>
     ${(() => {
       const g = gradings[`${sheetCard.lg}|${card.id}`];
@@ -1067,7 +1071,7 @@ async function loadVersions(card, lg){
   if (same.length < 2 && !incomplete) return;
   const full = await Promise.all(same.map(c => getCard(c.id, lg).catch(() => null)));
   if (sheetCard?.id !== card.id) return;
-  const ownsThis = collection.some(e => e.cardId === card.id && (lg === "ja" ? e.lang === "ja" : e.lang !== "ja"));
+  const ownsThis = collection.some(e => e.cardId === card.id && (ownSets(lg) ? e.lang === lg : !ownSets(e.lang)));
   const rows = same.map((c, i) => {
     const f = full[i], p = f ? marketPrice(f, availableVariants(f)[0]) : null, cur = c.id === card.id;
     return `<button class="version ${cur ? "current" : ""}" data-card="${esc(c.id)}" data-lg="${lg}">
@@ -1088,7 +1092,7 @@ async function loadVersions(card, lg){
 /** Einträge einer Karte auf eine andere Version derselben Karte umziehen. */
 async function moveEntries(fromId, toId, lg){
   let to; try { to = await getCard(toId, lg); } catch (e) { toast(e.message); return; }
-  const moving = collection.filter(e => e.cardId === fromId && (lg === "ja" ? e.lang === "ja" : e.lang !== "ja"));
+  const moving = collection.filter(e => e.cardId === fromId && (ownSets(lg) ? e.lang === lg : !ownSets(e.lang)));
   for (const e of moving) {
     collection = collection.filter(x => x !== e);
     const key = `${e.lang}|${to.id}|${e.variant}`, ex = collection.find(x => x.key === key);
@@ -1149,7 +1153,7 @@ function groups(){
     if (!g.setTotal && e.setTotal) g.setTotal = e.setTotal; if (!g.setLogo && e.setLogo) g.setLogo = e.setLogo;
   }
   return [...map.values()].map(g => ({ ...g,
-    lang: viewLang !== "all" ? viewLang : (g.langs.has("de") ? "de" : g.langs.has("en") ? "en" : "ja"),
+    lang: viewLang !== "all" ? viewLang : (g.langs.has("de") ? "de" : g.langs.has("en") ? "en" : g.langs.has("ja") ? "ja" : [...g.langs][0] || "de"),
     unique: new Set(g.entries.map(e => e.cardId)).size,
     value: g.entries.reduce((s, e) => s + (e.price || 0) * e.qty, 0),
     latest: Math.max(...g.entries.map(e => e.addedAt || 0)) }));
