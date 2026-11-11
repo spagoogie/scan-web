@@ -612,7 +612,7 @@ function imgCandidates(base, cardId, localId, q, lg){
     out.push(`${base}/${q}.webp`);
     if (!ownSets(lg)) { const en = base.replace(/\/(de|fr|es|it|pt)\//, "/en/"); if (en !== base) out.push(`${en}/${q}.webp`); }
   } else if (meta.serie && localId) {
-    for (const l of ownSets(lg) ? [lg] : [lg || "de", "en"]) out.push(`https://assets.tcgdex.net/${l}/${meta.serie}/${setId}/${localId}/${q}.webp`);
+    for (const l of dataLangs(lg || "de")) out.push(`https://assets.tcgdex.net/${l}/${meta.serie}/${setId}/${localId}/${q}.webp`);
   }
   if (!ownSets(lg) && meta.abbr && /^\d+$/.test(localId || ""))
     out.push(`https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/${meta.abbr}/${meta.abbr}_${String(localId).padStart(3, "0")}_R_EN_${q === "high" ? "LG" : "SM"}.png`);
@@ -665,6 +665,19 @@ async function api(path, lg, query = ""){
   if (!res.ok) throw new Error(`Die Kartendatenbank antwortet mit Fehler ${res.status}.`);
   return res.json();
 }
+/* Datenquellen pro Sprache: Deutsch fällt auf Englisch zurück. Chinesisch (Festland) übernimmt
+   neue Sets, die TCGdex auf Chinesisch noch nicht hat, von der japanischen Ausgabe
+   (gleiche Nummerierung, z. B. 30thC = M6a) – die Karte bleibt aber als „ZH“ in der Sammlung. */
+const DATA_LANGS = { de:["de","en"], "zh-cn":["zh-cn","ja","en"] };
+const dataLangs = lg => DATA_LANGS[lg] || [lg];
+async function firstFound(lg, fn){
+  let err;
+  for (const l of dataLangs(lg)) {
+    try { return await fn(l); }
+    catch (e) { err = e; if (!(e instanceof NotFound)) throw e; }
+  }
+  throw err;
+}
 function getSets(lg){
   if (!cache.sets[lg]) cache.sets[lg] = api("sets", lg).catch(e => { delete cache.sets[lg]; throw e; });
   return cache.sets[lg];
@@ -675,15 +688,15 @@ function getSet(id, lg){
   return cache.set[k];
 }
 async function getSetAny(id, lg){
-  try { return await getSet(id, lg); }
-  catch (e) { if (lg === "de") return getSet(id, "en"); throw e; }
+  return firstFound(lg, l => getSet(id, l));
 }
 async function getCard(id, lg, fresh = false){
   const k = lg + "|" + id;
   if (cache.card[k] && !fresh) return cache.card[k];
   let card;
-  try { card = await api("cards/" + encodeURIComponent(id), lg); }
-  catch (e) { if (e instanceof NotFound && lg === "de") card = await api("cards/" + encodeURIComponent(id), "en"); else throw e; }
+  let src = lg;
+  card = await firstFound(lg, async l => { const c = await api("cards/" + encodeURIComponent(id), l); src = l; return c; });
+  if (src !== lg && ownSets(lg)) card._srcLg = src;   // z. B. chinesische Karte mit japanischen Daten
   // Deutsche Karten haben dieselbe Cardmarket-Kennung wie englische: fehlende Preise dort holen.
   // Deutsche Karten teilen die ID mit Englisch: fehlende Preise oder Bilder dort holen.
   if ((!card.pricing?.cardmarket || !card.image) && lg === "de") {
@@ -771,8 +784,11 @@ function isBaseCard(c, official){
 }
 
 async function identify(p, lg){
-  let out = await identifyIn(p, lg);
-  if (!out.length && lg === "de") out = await identifyIn(p, "en").catch(() => []);
+  let out = [];
+  for (const l of dataLangs(lg)) {
+    out = await (l === lg ? identifyIn(p, l) : identifyIn(p, l).catch(() => []));
+    if (out.length) break;
+  }
   return out;
 }
 async function identifyIn(p, lg){
@@ -1015,6 +1031,7 @@ function renderCardSheet(card){
     <div class="card-title">
       <h2>${esc(card.name)}</h2>
       <div class="small">${esc(card.set?.name)} · <span class="num">${esc(card.localId)}${total ? "/" + total : ""}</span> ${badge(sheetCard.lg)}</div>
+      ${card._srcLg ? `<div class="small">Bild und Daten aus der ${LANGS[card._srcLg].toLowerCase()}en Ausgabe – deine Karte wird als ${badge(sheetCard.lg)} gespeichert.</div>` : ""}
       ${card.rarity ? `<span class="rarity">${esc(card.rarity)}</span>` : ""}
     </div>
     <div class="panel">
