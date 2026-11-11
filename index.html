@@ -620,15 +620,45 @@ function imgCandidates(base, cardId, localId, q, lg){
 }
 function cardImg(base, cardId, localId, { alt = "", q = "low", lg = "de", label } = {}){
   const c = imgCandidates(base, cardId, String(localId ?? ""), q, lg);
-  const ph = `<span class="ph num">${esc(label ?? localId ?? "")}</span>`;
+  const data = cardId ? ` data-cid="${esc(cardId)}" data-lid="${esc(String(localId ?? ""))}" data-lg="${esc(lg)}" data-q="${esc(q)}" data-alttext="${esc(alt)}"${c.length ? "" : " data-rescue"}` : "";
+  const ph = `<span class="ph num"${data}>${esc(label ?? localId ?? "")}</span>`;
   if (!c.length) return ph;
   return `${ph}<img src="${esc(c[0])}" data-alt="${esc(c.slice(1).join("|"))}" alt="${esc(alt)}" loading="lazy" onerror="nextImg(this)">`;
 }
 window.nextImg = el => {
   const rest = (el.dataset.alt || "").split("|").filter(Boolean);
-  if (!rest.length) { el.remove(); return; }
+  if (!rest.length) { const ph = el.previousElementSibling; el.remove(); if (ph?.dataset?.cid) rescueImg(ph); return; }
   el.dataset.alt = rest.slice(1).join("|"); el.src = rest[0];
 };
+/* Bilder nachladen, wenn dem Eintrag keins mitgegeben wurde (z. B. Karten von Freunden aus Sets,
+   die dieses Gerät noch nie geöffnet hat, oder Karten, die beim Hinzufügen noch kein Bild hatten). */
+const rescueCache = new Map();
+let rescueActive = 0; const rescueWait = [];
+async function rescueSlot(fn){
+  if (rescueActive >= 4) await new Promise(r => rescueWait.push(r));
+  rescueActive++;
+  try { return await fn(); } finally { rescueActive--; rescueWait.shift()?.(); }
+}
+function rescueCandidates(cid, lid, lg, q){
+  const k = [lg, cid, q].join("|");
+  if (!rescueCache.has(k)) rescueCache.set(k, rescueSlot(async () => {
+    try { await getSetAny(setIdOf(cid), lg); } catch {}
+    let c = imgCandidates(null, cid, lid, q, lg);
+    try { const card = await getCard(cid, lg); if (card.image) c = [...new Set([...imgCandidates(card.image, cid, lid, q, lg), ...c])]; } catch {}
+    return c;
+  }));
+  return rescueCache.get(k);
+}
+async function rescueImg(ph){
+  if (ph.dataset.rescued) return;
+  ph.dataset.rescued = "1"; ph.removeAttribute("data-rescue");
+  const { cid, lid, lg, q, alttext } = ph.dataset;
+  const c = await rescueCandidates(cid, lid, lg, q);
+  if (!c.length || !ph.isConnected || ph.nextElementSibling?.tagName === "IMG") return;
+  ph.insertAdjacentHTML("afterend", `<img src="${esc(c[0])}" data-alt="${esc(c.slice(1).join("|"))}" alt="${esc(alttext || "")}" loading="lazy" onerror="nextImg(this)">`);
+}
+new MutationObserver(() => document.querySelectorAll(".ph[data-rescue]").forEach(rescueImg))
+  .observe(document.documentElement, { childList: true, subtree: true });
 const setIdOf = cardId => cardId.slice(0, cardId.lastIndexOf("-"));
 
 /* ---------- State ---------- */
