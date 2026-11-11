@@ -714,7 +714,7 @@ function getSets(lg){
 }
 function getSet(id, lg){
   const k = lg + "/" + id;
-  if (!cache.set[k]) cache.set[k] = api("sets/" + encodeURIComponent(id), lg).then(s => { rememberSet(s); return s; }).catch(e => { delete cache.set[k]; throw e; });
+  if (!cache.set[k]) cache.set[k] = api("sets/" + encodeURIComponent(id), lg).then(s => { rememberSet(s); return s; }).catch(e => { if (!(e instanceof NotFound)) delete cache.set[k]; throw e; });
   return cache.set[k];
 }
 async function getSetAny(id, lg){
@@ -1026,7 +1026,7 @@ function openCandidates(cands, display, lg){
 
 let selVariant = "normal", addLang = "de";
 async function openCard(id, lg){
-  sheetCard = { id, lg }; addLang = lg;
+  sheetCard = { id, lg }; addLang = lg; selVariant = null;
   openSheet("Karte", `<div class="spinner"></div>`);
   try {
     const [card] = await Promise.all([getCard(id, lg), getSetAny(setIdOf(id), lg).catch(() => null)]);
@@ -1039,8 +1039,11 @@ async function openCard(id, lg){
   }
 }
 function renderCardSheet(card){
-  const vars = availableVariants(card);
-  if (!vars.includes(selVariant)) selVariant = vars[0];
+  // Die Datenbank kennt nicht bei jeder Karte alle Varianten (v. a. neue und japanische Sets) –
+  // Normal, Holo und Reverse Holo sind daher immer wählbar; die bekannten stehen vorn.
+  const known = availableVariants(card);
+  const vars = [...known, ...["normal", "holo", "reverse"].filter(v => !known.includes(v))];
+  if (!vars.includes(selVariant)) selVariant = known[0];
   const price = marketPrice(card, selVariant);
   const cm = card.pricing?.cardmarket, tp = card.pricing?.tcgplayer;
   const total = card.set?.cardCount?.official;
@@ -1088,7 +1091,7 @@ function renderCardSheet(card){
     <div class="panel">
       <strong>Meine Sammlung</strong>
       ${langChoices.length > 1 ? `<div class="variants" role="group" aria-label="Sprache der Karte">${langChoices.map(l => `<button class="chip" data-addlang="${l}" aria-pressed="${l === addLang}">${LANGS[l]}</button>`).join("")}</div>` : ""}
-      ${vars.length > 1 ? `<div class="variants">${vars.map(v => `<button class="chip" data-variant="${v}" aria-pressed="${v === selVariant}">${VARIANTS[v]}</button>`).join("")}</div>` : ""}
+      <div class="variants">${vars.map(v => `<button class="chip" data-variant="${v}" aria-pressed="${v === selVariant}">${VARIANTS[v]}</button>`).join("")}</div>
       ${owned.map(e => `<div class="owned-line">
           <div><strong>${badge(e.lang)} ${VARIANTS[e.variant] || e.variant}</strong><div class="small num">${e.price != null ? fmt(e.price * e.qty) : ""}</div></div>
           <div class="stepper"><button data-dec="${esc(e.key)}" aria-label="Weniger">−</button><span class="num">${e.qty}×</span><button data-inc="${esc(e.key)}" aria-label="Mehr">+</button></div>
